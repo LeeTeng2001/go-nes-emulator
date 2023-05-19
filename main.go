@@ -1,9 +1,16 @@
 package main
 
 import (
-	"nes_emulator/mlog"
+	"nes_emulator/bus"
+	"nes_emulator/cpu6502"
 )
 
 func main() {
-	mlog.L.Info("XD")
+	// TODO: Main entry
+	newBus := bus.New()
+	cpu := cpu6502.New()
+	cpu.ConnectBus(newBus)
+	for {
+		cpu.Clock()
+	}
 }

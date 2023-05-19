@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-func (c *Cpu) clock() {
+func (c *Cpu) Clock() {
 	// Read new instruction and update remaining cycle
 	if c.cyclesLeft == 0 {
 		// Log debug

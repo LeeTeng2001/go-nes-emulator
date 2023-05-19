@@ -76,7 +76,7 @@ func TestNesTest(t *testing.T) {
 	// Run, after this value is unofficial opcode which is discouraged
 	// https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
 	for i := 0; i < 15850; i++ {
-		cpu.clock()
+		cpu.Clock()
 	}
 
 	// check for error as defined by nestest
