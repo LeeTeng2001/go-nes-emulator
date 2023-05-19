@@ -357,6 +357,7 @@ func (c *Cpu) LSR() uint8 {
 
 func (c *Cpu) NOP() uint8 {
 	// not all NOPs are equal: https://wiki.nesdev.com/w/index.php/CPU_unofficial_opcodes
+	// Some NOP will use non-immediate mode address and consume extra byte after nop
 	// TODO: will add more based on game compatibility, and ultimately, I'd like to cover all illegal opcodes too
 	switch c.opcode {
 	case 0x1C, 0x3C, 0x5C, 0x7C, 0xDC, 0xFC:

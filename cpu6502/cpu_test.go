@@ -32,9 +32,9 @@ func compareLog() bool {
 		cpuLine := cpuScanner.Text()
 		nesTestLine := nesTestScanner.Text()
 		// TODO: Hardcode position and other information
-		cpuFrontInfo := cpuLine[23:39]
+		cpuFrontInfo := cpuLine[23:38]
 		cpuBackInfo := cpuLine[58:]
-		nesTestFrontInfo := nesTestLine[:16]
+		nesTestFrontInfo := nesTestLine[:15]
 		nesTestBackInfo := nesTestLine[48:73]
 
 		if cpuFrontInfo != nesTestFrontInfo {
@@ -73,8 +73,9 @@ func TestNesTest(t *testing.T) {
 	cpu.regPC = 0xC000
 	//cpu.disassembleMemRange(0xC000, 0xC005, false)
 
-	// Run
-	for i := 0; i < 15000; i++ {
+	// Run, after this value is unofficial opcode which is discouraged
+	// https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
+	for i := 0; i < 15850; i++ {
 		cpu.clock()
 	}
 
