@@ -1,6 +1,10 @@
 package cpu6502
 
-import "nes_emulator/bus"
+import (
+	"github.com/charmbracelet/log"
+	"nes_emulator/bus"
+	"os"
+)
 
 // Compile time interface check
 var _ bus.Device = (*Cpu)(nil)
@@ -14,8 +18,14 @@ const (
 	resetRequiredCycle = 8
 )
 
+const (
+	cpuLogFile = "cpu.log"
+)
+
 type Cpu struct {
-	b *bus.Bus
+	// Our ds
+	b          *bus.Bus
+	cpuFileLog *log.Logger
 	// Registers
 	regA      uint8
 	regX      uint8
@@ -36,6 +46,21 @@ type Cpu struct {
 func New() *Cpu {
 	newCpu := &Cpu{}
 	newCpu.initInstLookup()
+	return newCpu
+}
+
+func NewDebug() *Cpu {
+	newCpu := &Cpu{}
+	newCpu.initInstLookup()
+
+	file, err := os.Create(cpuLogFile)
+	if err != nil {
+		log.Fatalf("cannot open %v", cpuLogFile)
+	}
+	newCpu.cpuFileLog = log.NewWithOptions(file, log.Options{
+		ReportTimestamp: true,
+	})
+
 	return newCpu
 }
 

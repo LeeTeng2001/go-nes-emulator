@@ -55,7 +55,7 @@ func (c *Cpu) ASL() uint8 {
 	c.setStatus(FlagC, (tmpRes&0xFF00) > 0)
 	c.setStatus(FlagZ, (tmpRes&0x00FF) == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
-	if reflect.ValueOf(c.insLookup[c.opcode].addrMode) != reflect.ValueOf(c.IMP) {
+	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
 		c.Write(c.addrAbs, uint8(tmpRes))
 	} else {
 		c.regA = uint8(tmpRes)
@@ -314,7 +314,7 @@ func (c *Cpu) JSR() uint8 {
 }
 
 func (c *Cpu) LDA() uint8 {
-	// Load to accum
+	// LoadToRam to accum
 	c.fetch()
 	c.regA = c.fetchedData
 	c.setStatus(FlagZ, c.regA == 0)
@@ -323,7 +323,7 @@ func (c *Cpu) LDA() uint8 {
 }
 
 func (c *Cpu) LDX() uint8 {
-	// Load to X
+	// LoadToRam to X
 	c.fetch()
 	c.regX = c.fetchedData
 	c.setStatus(FlagZ, c.regX == 0)
@@ -332,7 +332,7 @@ func (c *Cpu) LDX() uint8 {
 }
 
 func (c *Cpu) LDY() uint8 {
-	// Load to Y
+	// LoadToRam to Y
 	c.fetch()
 	c.regY = c.fetchedData
 	c.setStatus(FlagZ, c.regY == 0)
@@ -347,7 +347,7 @@ func (c *Cpu) LSR() uint8 {
 	tmpRes := c.fetchedData >> 1
 	c.setStatus(FlagZ, tmpRes == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
-	if reflect.ValueOf(c.insLookup[c.opcode].addrMode) != reflect.ValueOf(c.IMP) {
+	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
 		c.Write(c.addrAbs, tmpRes)
 	} else {
 		c.regA = tmpRes
@@ -384,8 +384,6 @@ func (c *Cpu) PHA() uint8 {
 func (c *Cpu) PHP() uint8 {
 	// Push status to stack
 	c.Write(baseStackOffset+uint16(c.regStkPtr), c.regStatus|FlagB|FlagU)
-	c.setStatus(FlagB, false)
-	c.setStatus(FlagU, false)
 	c.regStkPtr--
 	return 0
 }
@@ -403,6 +401,7 @@ func (c *Cpu) PLP() uint8 {
 	// Pop stack to status, set flag
 	c.regStkPtr++
 	c.regStatus = c.Read(baseStackOffset + uint16(c.regStkPtr))
+	c.setStatus(FlagB, false)
 	c.setStatus(FlagU, true)
 	return 0
 }
@@ -417,7 +416,7 @@ func (c *Cpu) ROL() uint8 {
 	c.setStatus(FlagC, (tmpRes&0xFF00) > 0)
 	c.setStatus(FlagZ, (tmpRes&0x00FF) == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
-	if reflect.ValueOf(c.insLookup[c.opcode].addrMode) != reflect.ValueOf(c.IMP) {
+	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
 		c.Write(c.addrAbs, uint8(tmpRes))
 	} else {
 		c.regA = uint8(tmpRes)
@@ -435,7 +434,7 @@ func (c *Cpu) ROR() uint8 {
 	c.setStatus(FlagC, (c.fetchedData&1) > 0)
 	c.setStatus(FlagZ, (tmpRes&0x00FF) == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
-	if reflect.ValueOf(c.insLookup[c.opcode].addrMode) != reflect.ValueOf(c.IMP) {
+	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
 		c.Write(c.addrAbs, uint8(tmpRes))
 	} else {
 		c.regA = uint8(tmpRes)
@@ -448,7 +447,7 @@ func (c *Cpu) RTI() uint8 {
 	// Restore state, reverse logic from handling interrupt
 	c.regStkPtr++
 	c.regStatus = c.Read(baseStackOffset + uint16(c.regStkPtr))
-	c.regStatus &= ^uint8(FlagB) & ^uint8(FlagU)
+	c.setStatus(FlagU, true)
 
 	c.regStkPtr++
 	c.regPC = uint16(c.Read(baseStackOffset + uint16(c.regStkPtr)))

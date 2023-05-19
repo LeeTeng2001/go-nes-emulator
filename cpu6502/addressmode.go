@@ -98,7 +98,7 @@ func (c *Cpu) IND() uint8 {
 
 	// Overflow if ptrLow == 0xFF, simulate page boundary
 	if ptrLow == 0xFF {
-		c.addrAbs = (uint16(c.Read(ptr&0xFF)) << 8) | uint16(c.Read(ptr))
+		c.addrAbs = (uint16(c.Read(ptr&0xFF00)) << 8) | uint16(c.Read(ptr))
 	} else {
 		c.addrAbs = (uint16(c.Read(ptr+1)) << 8) | uint16(c.Read(ptr))
 	}

@@ -1,10 +1,18 @@
 package cpu6502
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func (c *Cpu) clock() {
 	// Read new instruction and update remaining cycle
 	if c.cyclesLeft == 0 {
+		// Log debug
+		if c.cpuFileLog != nil {
+			dis, _ := c.disassembleMemAtAddr(c.regPC)
+			c.cpuFileLog.Printf("   %s %s", dis, c.getRegStateStr())
+		}
+
 		c.opcode = c.Read(c.regPC)
 		c.regPC++
 		c.cyclesLeft = c.insLookup[c.opcode].cyclesRequired
@@ -19,7 +27,7 @@ func (c *Cpu) clock() {
 
 func (c *Cpu) fetch() {
 	// Get data if our opcode has value
-	if reflect.ValueOf(c.insLookup[c.opcode].addrMode) != reflect.ValueOf(c.IMP) {
+	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
 		c.fetchedData = c.Read(c.addrAbs)
 	}
 }
@@ -30,7 +38,7 @@ func (c *Cpu) reset() {
 	c.regX = 0
 	c.regY = 0
 	c.regStkPtr = resetStackPtrAddr
-	c.regStatus = 0 | FlagU
+	c.regStatus = 0 | FlagU | FlagI // TODO: Should set interrupt flag?
 	c.addrAbs = 0
 	c.addrRel = 0
 	c.fetchedData = 0
