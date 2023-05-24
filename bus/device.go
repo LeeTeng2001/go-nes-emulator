@@ -1,5 +1,7 @@
 package bus
 
+import "nes_emulator/disk"
+
 // CpuDevice has the cpu interface
 // communication with main bus
 type CpuDevice interface {
@@ -14,5 +16,6 @@ type PpuDevice interface {
 	CRead(addr uint16) (data uint8)
 	PWrite(addr uint16, data uint8)
 	PRead(addr uint16) (data uint8)
+	ConnectDisk(nesDisk *disk.NesDisk)
 	Clock()
 }

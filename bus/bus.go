@@ -37,6 +37,7 @@ func New(Cpu CpuDevice, Ppu PpuDevice) *Bus {
 
 func (b *Bus) InsertDisk(nesDisk *disk.NesDisk) {
 	b.disk = nesDisk
+	b.ppu.ConnectDisk(nesDisk)
 }
 
 func (b *Bus) Reset() {
