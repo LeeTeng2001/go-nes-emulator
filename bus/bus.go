@@ -1,39 +1,65 @@
 package bus
 
 import (
-	"nes_emulator/loader"
+	"nes_emulator/disk"
 	"nes_emulator/mlog"
 )
 
-const RamSize = 64 * 1024
+const (
+	RamPhysicalSize    = 0x0800
+	RamAccessMask      = 0x07FF
+	RamAccessSize      = 0x2000
+	PpuAccessRegionEnd = 0x4000
+	PpuAccessMask      = 0x07
+)
 
+// TODO: Barrier to prevent unauthorised read/write by other device?
+// TODO: Check disk is valid when accessing
+
+// Bus connect all components, device is defined as interface
+// to prevent circular dependencies and support custom device implementation
 type Bus struct {
-	//Cpu *Device
-	ram [RamSize]uint8
+	cpu      CpuDevice
+	ppu      PpuDevice
+	disk     *disk.NesDisk
+	ram      [RamPhysicalSize]uint8
+	sysClock uint64
 }
 
-func New() *Bus {
-	b := Bus{}
+func New(Cpu CpuDevice, Ppu PpuDevice) *Bus {
+	b := Bus{
+		cpu:      Cpu,
+		ppu:      Ppu,
+		sysClock: 0,
+	}
 	return &b
 }
 
-func (b *Bus) Write(addr uint16, data uint8) {
-	if addr >= 0 && addr <= 0xFFFF {
-		b.ram[addr] = data
+func (b *Bus) InsertDisk(nesDisk *disk.NesDisk) {
+	b.disk = nesDisk
+}
+
+func (b *Bus) Reset() {
+	b.cpu.Reset()
+	b.sysClock = 0
+}
+
+func (b *Bus) Clock() {
+	// The running frequency is controlled by whatever calls this function.
+
+	// The fastest clock frequency the digital system cares is ppu
+	b.ppu.Clock()
+
+	// The CPU runs 3 times slower than the PPU
+	if b.sysClock%3 == 0 {
+		b.cpu.Clock()
 	}
+
+	// Update sys clock
+	b.sysClock++
 }
 
-func (b *Bus) Read(addr uint16) (data uint8) {
-	if addr >= 0 && addr <= 0xFFFF {
-		return b.ram[addr]
-	}
-	return 0
-}
-
-func (b *Bus) LoadNes(nes *loader.NesFile) {
-	// Todo: load nes directly
-}
-
+// LoadToRam : directly load a range of data into ram, only for debugging
 func (b *Bus) LoadToRam(data []uint8, startAddr int) {
 	for offset, dataByte := range data {
 		addr := startAddr + offset

@@ -1,7 +1,20 @@
 package bus
 
-// Device represents a device connected to a bus
-type Device interface {
-	Write(addr uint16, data uint8)
-	Read(addr uint16) (data uint8)
+// CpuDevice has the cpu interface
+// communication with main bus
+type CpuDevice interface {
+	CWrite(addr uint16, data uint8)
+	CRead(addr uint16) (data uint8)
+	Reset()
+	Clock()
+}
+
+// PpuDevice has the ppu interface
+// communication with ppu bus
+type PpuDevice interface {
+	CWrite(addr uint16, data uint8)
+	CRead(addr uint16) (data uint8)
+	PWrite(addr uint16, data uint8)
+	PRead(addr uint16) (data uint8)
+	Clock()
 }
