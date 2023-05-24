@@ -56,7 +56,7 @@ func (c *Cpu) ASL() uint8 {
 	c.setStatus(FlagZ, (tmpRes&0x00FF) == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
 	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
-		c.Write(c.addrAbs, uint8(tmpRes))
+		c.write(c.addrAbs, uint8(tmpRes))
 	} else {
 		c.regA = uint8(tmpRes)
 	}
@@ -139,20 +139,20 @@ func (c *Cpu) BRK() uint8 {
 
 	// Set flag and save pc
 	c.setStatus(FlagI, true)
-	c.Write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC>>8))
+	c.write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC>>8))
 	c.regStkPtr--
-	c.Write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC))
+	c.write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC))
 	c.regStkPtr--
 
 	// save status
 	c.setStatus(FlagB, true)
-	c.Write(baseStackOffset+uint16(c.regStkPtr), c.regStatus)
+	c.write(baseStackOffset+uint16(c.regStkPtr), c.regStatus)
 	c.regStkPtr--
 	c.setStatus(FlagB, false)
 
 	// Set pc, same as interrupt address
-	low := c.Read(irqHandlerAddr)
-	high := c.Read(irqHandlerAddr + 1)
+	low := c.read(irqHandlerAddr)
+	high := c.read(irqHandlerAddr + 1)
 	c.regPC = (uint16(high) << 8) | uint16(low)
 
 	return 0
@@ -240,7 +240,7 @@ func (c *Cpu) DEC() uint8 {
 	// Decrement value at memory location
 	c.fetch()
 	tmpRes := c.fetchedData - 1
-	c.Write(c.addrAbs, tmpRes)
+	c.write(c.addrAbs, tmpRes)
 	c.setStatus(FlagZ, tmpRes == 0)
 	c.setStatus(FlagN, (tmpRes&0x80) != 0)
 	return 0
@@ -273,7 +273,7 @@ func (c *Cpu) INC() uint8 {
 	// Increment value at memory location
 	c.fetch()
 	tmpRes := c.fetchedData + 1
-	c.Write(c.addrAbs, tmpRes)
+	c.write(c.addrAbs, tmpRes)
 	c.setStatus(FlagZ, tmpRes == 0)
 	c.setStatus(FlagN, (tmpRes&0x80) != 0)
 	return 0
@@ -304,9 +304,9 @@ func (c *Cpu) JMP() uint8 {
 func (c *Cpu) JSR() uint8 {
 	// Jump to subroutine, save pc
 	c.regPC--
-	c.Write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC>>8))
+	c.write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC>>8))
 	c.regStkPtr--
-	c.Write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC))
+	c.write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC))
 	c.regStkPtr--
 
 	c.regPC = c.addrAbs
@@ -348,7 +348,7 @@ func (c *Cpu) LSR() uint8 {
 	c.setStatus(FlagZ, tmpRes == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
 	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
-		c.Write(c.addrAbs, tmpRes)
+		c.write(c.addrAbs, tmpRes)
 	} else {
 		c.regA = tmpRes
 	}
@@ -377,14 +377,14 @@ func (c *Cpu) ORA() uint8 {
 
 func (c *Cpu) PHA() uint8 {
 	// Push accumulator to stack
-	c.Write(baseStackOffset+uint16(c.regStkPtr), c.regA)
+	c.write(baseStackOffset+uint16(c.regStkPtr), c.regA)
 	c.regStkPtr--
 	return 0
 }
 
 func (c *Cpu) PHP() uint8 {
 	// Push status to stack
-	c.Write(baseStackOffset+uint16(c.regStkPtr), c.regStatus|FlagB|FlagU)
+	c.write(baseStackOffset+uint16(c.regStkPtr), c.regStatus|FlagB|FlagU)
 	c.regStkPtr--
 	return 0
 }
@@ -392,7 +392,7 @@ func (c *Cpu) PHP() uint8 {
 func (c *Cpu) PLA() uint8 {
 	// Pop stack to accumulator, set flag
 	c.regStkPtr++
-	c.regA = c.Read(baseStackOffset + uint16(c.regStkPtr))
+	c.regA = c.read(baseStackOffset + uint16(c.regStkPtr))
 	c.setStatus(FlagZ, c.regA == 0)
 	c.setStatus(FlagN, (c.regA&0x80) > 0)
 	return 0
@@ -401,7 +401,7 @@ func (c *Cpu) PLA() uint8 {
 func (c *Cpu) PLP() uint8 {
 	// Pop stack to status, set flag
 	c.regStkPtr++
-	c.regStatus = c.Read(baseStackOffset + uint16(c.regStkPtr))
+	c.regStatus = c.read(baseStackOffset + uint16(c.regStkPtr))
 	c.setStatus(FlagB, false)
 	c.setStatus(FlagU, true)
 	return 0
@@ -418,7 +418,7 @@ func (c *Cpu) ROL() uint8 {
 	c.setStatus(FlagZ, (tmpRes&0x00FF) == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
 	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
-		c.Write(c.addrAbs, uint8(tmpRes))
+		c.write(c.addrAbs, uint8(tmpRes))
 	} else {
 		c.regA = uint8(tmpRes)
 	}
@@ -436,7 +436,7 @@ func (c *Cpu) ROR() uint8 {
 	c.setStatus(FlagZ, (tmpRes&0x00FF) == 0)
 	c.setStatus(FlagN, tmpRes&0x80 != 0)
 	if reflect.ValueOf(c.insLookup[c.opcode].addrMode).Pointer() != reflect.ValueOf(c.IMP).Pointer() {
-		c.Write(c.addrAbs, uint8(tmpRes))
+		c.write(c.addrAbs, uint8(tmpRes))
 	} else {
 		c.regA = uint8(tmpRes)
 	}
@@ -447,13 +447,13 @@ func (c *Cpu) RTI() uint8 {
 	// Return from interrupt
 	// Restore state, reverse logic from handling interrupt
 	c.regStkPtr++
-	c.regStatus = c.Read(baseStackOffset + uint16(c.regStkPtr))
+	c.regStatus = c.read(baseStackOffset + uint16(c.regStkPtr))
 	c.setStatus(FlagU, true)
 
 	c.regStkPtr++
-	c.regPC = uint16(c.Read(baseStackOffset + uint16(c.regStkPtr)))
+	c.regPC = uint16(c.read(baseStackOffset + uint16(c.regStkPtr)))
 	c.regStkPtr++
-	c.regPC |= uint16(c.Read(baseStackOffset+uint16(c.regStkPtr))) << 8
+	c.regPC |= uint16(c.read(baseStackOffset+uint16(c.regStkPtr))) << 8
 
 	return 0
 }
@@ -462,9 +462,9 @@ func (c *Cpu) RTS() uint8 {
 	// Return from subroutine
 	// Restore state
 	c.regStkPtr++
-	c.regPC = uint16(c.Read(baseStackOffset + uint16(c.regStkPtr)))
+	c.regPC = uint16(c.read(baseStackOffset + uint16(c.regStkPtr)))
 	c.regStkPtr++
-	c.regPC |= uint16(c.Read(baseStackOffset+uint16(c.regStkPtr))) << 8
+	c.regPC |= uint16(c.read(baseStackOffset+uint16(c.regStkPtr))) << 8
 	c.regPC++
 	return 0
 }
@@ -511,20 +511,20 @@ func (c *Cpu) SEI() uint8 {
 
 func (c *Cpu) STA() uint8 {
 	// Store accum at address
-	c.Write(c.addrAbs, c.regA)
+	c.write(c.addrAbs, c.regA)
 	return 0
 
 }
 func (c *Cpu) STX() uint8 {
 	// Store x at address
-	c.Write(c.addrAbs, c.regX)
+	c.write(c.addrAbs, c.regX)
 	return 0
 
 }
 
 func (c *Cpu) STY() uint8 {
 	// Store y at address
-	c.Write(c.addrAbs, c.regY)
+	c.write(c.addrAbs, c.regY)
 	return 0
 }
 

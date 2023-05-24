@@ -7,7 +7,7 @@ import (
 )
 
 // Compile time interface check
-var _ bus.Device = (*Cpu)(nil)
+var _ bus.CpuDevice = (*Cpu)(nil)
 
 const (
 	irqHandlerAddr     = 0xFFFE
@@ -64,16 +64,18 @@ func NewDebug() *Cpu {
 	return newCpu
 }
 
-func (c *Cpu) Write(addr uint16, data uint8) {
-	c.b.Write(addr, data)
-}
-
-func (c *Cpu) Read(addr uint16) (data uint8) {
-	return c.b.Read(addr)
-}
-
 func (c *Cpu) ConnectBus(b *bus.Bus) {
 	c.b = b
+}
+
+// Helper functions ------------------------------------------
+
+func (c *Cpu) write(addr uint16, data uint8) {
+	c.b.CWrite(addr, data)
+}
+
+func (c *Cpu) read(addr uint16) (data uint8) {
+	return c.b.CRead(addr)
 }
 
 func (c *Cpu) getStatus(flag uint8) bool {

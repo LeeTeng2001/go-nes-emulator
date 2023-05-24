@@ -27,9 +27,9 @@ func (c *Cpu) disassembleMemAtAddr(addr uint16) (ans string, nextAddr uint16) {
 	// Example line: C000  4C F5 C5  JMP $C5F5
 	var output strings.Builder
 
-	// Read instruction and base operand
+	// read instruction and base operand
 	output.WriteString(fmt.Sprintf("%04X  ", addr))
-	opcode := c.Read(addr)
+	opcode := c.read(addr)
 	addr++
 	inst := c.insLookup[opcode]
 	output.WriteString(fmt.Sprintf("%02X ", opcode))
@@ -43,24 +43,24 @@ func (c *Cpu) disassembleMemAtAddr(addr uint16) (ans string, nextAddr uint16) {
 	case reflect.ValueOf(c.IMM).Pointer(), reflect.ValueOf(c.ZP0).Pointer(),
 		reflect.ValueOf(c.ZPX).Pointer(), reflect.ValueOf(c.ZPY).Pointer(),
 		reflect.ValueOf(c.IZX).Pointer(), reflect.ValueOf(c.IZY).Pointer():
-		lowData := c.Read(addr)
+		lowData := c.read(addr)
 		addr++
 		infoString = fmt.Sprintf("$%02X", lowData)
 		output.WriteString(fmt.Sprintf("%02X    ", lowData))
 	case reflect.ValueOf(c.ABS).Pointer(), reflect.ValueOf(c.ABX).Pointer(),
 		reflect.ValueOf(c.ABY).Pointer(), reflect.ValueOf(c.IND).Pointer():
-		lowData := c.Read(addr)
+		lowData := c.read(addr)
 		addr++
-		highData := c.Read(addr)
+		highData := c.read(addr)
 		addr++
 		infoString = fmt.Sprintf("$%02X%02X", highData, lowData)
 		output.WriteString(fmt.Sprintf("%02X %02X ", lowData, highData))
 	case reflect.ValueOf(c.REL).Pointer(): // handle redirection maybe
-		lowData := c.Read(addr)
+		lowData := c.read(addr)
 		addr++
 		output.WriteString(fmt.Sprintf("%02X    ", lowData))
 	case reflect.ValueOf(c.NOP).Pointer(): // NOP
-		lowData := c.Read(addr)
+		lowData := c.read(addr)
 		addr++
 		output.WriteString(fmt.Sprintf("%02X    ", lowData))
 	default:

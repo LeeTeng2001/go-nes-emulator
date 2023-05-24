@@ -3,8 +3,6 @@ package bus
 // CpuDevice has the cpu interface
 // communication with main bus
 type CpuDevice interface {
-	CWrite(addr uint16, data uint8)
-	CRead(addr uint16) (data uint8)
 	Reset()
 	Clock()
 }

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"github.com/charmbracelet/log"
 	"nes_emulator/bus"
-	"nes_emulator/loader"
+	"nes_emulator/disk"
 	"nes_emulator/mlog"
 	"os"
 	"testing"
@@ -58,22 +58,23 @@ func compareLog() bool {
 }
 
 func TestNesTest(t *testing.T) {
-	newBus := bus.New()
 	cpu := NewDebug()
+	newBus := bus.New(cpu, nil)
 	cpu.ConnectBus(newBus)
 
-	// Load nes, write twice since we don't have mapper
+	// Load nes, write twice to ram if you don't have a working memory yet
+	// nesFile.PrgRomData should be loaded to 0x8000 and 0xC000
 	// More info: https://github.com/PyAndy/Py3NES/issues/1
-	nesFile := loader.New("tests/nestest.nes")
-	newBus.LoadToRam(nesFile.PrgRomData, 0x8000)
-	newBus.LoadToRam(nesFile.PrgRomData, 0xC000)
+	// Here because I have memory system so I just load it and let the disk handle the rest
+	nesFile := disk.New("tests/nestest.nes")
+	newBus.InsertDisk(nesFile)
 
 	// Set execution start point for nestest
-	cpu.reset()
+	cpu.Reset()
 	cpu.regPC = 0xC000
 	//cpu.disassembleMemRange(0xC000, 0xC005, false)
 
-	// Run, after this value is unofficial opcode which is discouraged
+	// Run, after this threshold is all unofficial opcodes which is discouraged
 	// https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes
 	for i := 0; i < 15850; i++ {
 		cpu.Clock()
@@ -81,8 +82,8 @@ func TestNesTest(t *testing.T) {
 
 	// check for error as defined by nestest
 	// Doc: https://www.qmtpro.com/~nes/misc/nestest.txt
-	errCodeLow := cpu.Read(0x02)
-	errCodeHigh := cpu.Read(0x03)
+	errCodeLow := cpu.read(0x02)
+	errCodeHigh := cpu.read(0x03)
 	mlog.L.Infof("Err code low: %02X", errCodeLow)
 	mlog.L.Infof("Err code high: %02X", errCodeHigh)
 
@@ -90,7 +91,7 @@ func TestNesTest(t *testing.T) {
 		t.Errorf("One of the error code is not zero!")
 	}
 
-	// Compare log
+	// Compare log output
 	if !compareLog() {
 		t.Errorf("Log output mismatch!!")
 	}
