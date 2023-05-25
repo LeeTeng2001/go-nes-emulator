@@ -1,6 +1,7 @@
 package cpu6502
 
 import (
+	"nes_emulator/mlog"
 	"reflect"
 )
 
@@ -34,6 +35,7 @@ func (c *Cpu) fetch() {
 
 // Reset cpu to a known state
 func (c *Cpu) Reset() {
+	mlog.L.Info("Resetting cpu")
 	c.regA = 0
 	c.regX = 0
 	c.regY = 0

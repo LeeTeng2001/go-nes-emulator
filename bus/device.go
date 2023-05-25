@@ -18,6 +18,7 @@ type PpuDevice interface {
 	PWrite(addr uint16, data uint8)
 	PRead(addr uint16) (data uint8)
 	ConnectDisk(nesDisk *disk.NesDisk)
+	Reset()
 	Clock()
 	CheckNmiAndTurnOff() bool
 }
