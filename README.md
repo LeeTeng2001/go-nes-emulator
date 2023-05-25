@@ -20,6 +20,17 @@
   - Pixel value of 0 can be thought as transparent.
 - Understand scanline and out of range scan! 
 - The vertical blank ppu status register is important as it tells cpu when it's safe to update! Use for synchronising with cpu and ppu. When it reach the first out of range scaneline it'll also emit a NMI to cpu
+- Nametable (https://www.nesdev.org/wiki/PPU_nametables), quite complicated:
+  - Single nametable is (32x8) x (32x8), we have 4 nametable, one pattern table can fit 1/4 of single nametable. 
+  - The last 2 row of nametable is used as attribute table
+  - That's how nintendo get its display resolution! 32x8=256 x (32-2)x8=240
+  - Actual VRAM only contains 2 nametable but there's 4 addressable nametable.
+  - Same as before, some register controls mirroring of X or Y of nametable. Look at the link for visualisation
+  - Scroll register controls scrolling to another nametable.
+  - Offset can be cleverly calculated by combining bits! Nintendo is genius
+  - The last 2 rows is 32 * 2 bytes = 64, so we can split up the nametable into 8x8 region and each attribute defines the color palette to use. Each region can be further divde into 2x2 sub-region, each sub-region pallette is controlled by 2 bits in single atrribute byte 
+  - Render cycle diagram: https://www.nesdev.org/w/images/default/4/4f/Ppu.svg, when rendering current tile prepare for next one during different cycle
+- Loopy rendering (widely used in NES emulator), he's the guy that define a convinient way for us to setup this rendering pipeline in emulator
 
 # Running this project
 
@@ -27,7 +38,7 @@
 # My notes
 - ensure cpu is working independently, use nestest to test, the old one contains some bug remember to find the updated file!! Stop till unofficial opcode
 - components, implement ppu operation
-- PPU is complex, do bit by bit. First make sure pattern table can be loaded and display correctly. 
+- PPU is complex, do bit by bit. First make sure pattern table can be loaded and display correctly. Only need some bits in status register and control register in order to get it working
 
 # Resources
 - [javidx9](https://www.youtube.com/watch?v=8XmxKPJDGU0&list=PLrOv9FMX8xJHqMvSGB_9G9nZZ_4IgteYf&index=3) series of NES emulator

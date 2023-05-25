@@ -29,8 +29,9 @@ type NesDisk struct {
 	PrgRomData []byte
 	ChrRomData []byte
 	// Mapper info and corresponding handler
-	nMapperId     uint8
-	mapperHandler mapper.IMapper
+	nMapperId        uint8
+	MirrorHorizontal bool
+	mapperHandler    mapper.IMapper
 }
 
 func (n *NesDisk) PrintInfo() {

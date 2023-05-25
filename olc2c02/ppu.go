@@ -39,10 +39,12 @@ type Ppu struct {
 	frameCompleted bool
 	hasNmi         bool
 	// Screen display
-	screenDisplayBuf  []uint8
-	patternDisplayBuf [2][]uint8
-	width             int
-	height            int
+	screenDisplayBuf    []uint8
+	nametableDisplayBuf []uint8
+	patternDisplayBuf   [2][]uint8
+	width               int
+	height              int
+	// Control scrolling in nametable
 	// Registers
 	regCtrl register
 	regMask register
@@ -55,8 +57,9 @@ type Ppu struct {
 
 func New() *Ppu {
 	p := &Ppu{
-		screenDisplayBuf: make([]byte, NesDisplayWidth*NesDisplayHeight*4),
-		hasWriteBuffer:   false,
+		screenDisplayBuf:    make([]byte, NesDisplayWidth*NesDisplayHeight*4),
+		nametableDisplayBuf: make([]byte, NesDisplayWidth*NesDisplayHeight*4),
+		hasWriteBuffer:      false,
 	}
 	p.patternDisplayBuf[0] = make([]byte, PatternTableSize*4)
 	p.patternDisplayBuf[1] = make([]byte, PatternTableSize*4)

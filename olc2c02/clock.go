@@ -1,7 +1,6 @@
 package olc2c02
 
 import (
-	"math/rand"
 	"nes_emulator/mlog"
 )
 
@@ -35,19 +34,19 @@ func (p *Ppu) Clock() {
 		}
 	}
 
-	// Fake some noise for now
-	if p.cycle < 256 && p.scanLine >= 0 && p.scanLine < 240 {
-		i := 4 * (int(p.cycle) + int(p.scanLine)*256)
-		if rand.Float32() < 0.5 {
-			p.screenDisplayBuf[i] = 255
-			p.screenDisplayBuf[i+1] = 255
-			p.screenDisplayBuf[i+2] = 255
-		} else {
-			p.screenDisplayBuf[i] = 0
-			p.screenDisplayBuf[i+1] = 0
-			p.screenDisplayBuf[i+2] = 0
-		}
-	}
+	//// Fake some noise for now
+	//if p.cycle < 256 && p.scanLine >= 0 && p.scanLine < 240 {
+	//	i := 4 * (int(p.cycle) + int(p.scanLine)*256)
+	//	if rand.Float32() < 0.5 {
+	//		p.screenDisplayBuf[i] = 255
+	//		p.screenDisplayBuf[i+1] = 255
+	//		p.screenDisplayBuf[i+2] = 255
+	//	} else {
+	//		p.screenDisplayBuf[i] = 0
+	//		p.screenDisplayBuf[i+1] = 0
+	//		p.screenDisplayBuf[i+2] = 0
+	//	}
+	//}
 
 	// Advance. why 341 and 261?
 	// The actual dim is 256x240 but the scanline is bigger than that 341x261

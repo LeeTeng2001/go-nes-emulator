@@ -123,7 +123,7 @@ func (p *Ppu) GetPatternTable(paletteIdx, tableIdx uint8) []uint8 {
 					tileMsb = tileMsb >> 1
 
 					// set pixel color, note because we're adding from lowest bit, so
-					// the pixel starts from right on actual screenDisplayBuf
+					// the pixel starts from right on actual patternDisplayBuf
 					drawByteOffset := 4 * ((nTileY*8+row)*(16*8) + (nTileX*8 + (7 - col)))
 					p.patternDisplayBuf[tableIdx][drawByteOffset+0] = actualColor.R
 					p.patternDisplayBuf[tableIdx][drawByteOffset+1] = actualColor.G
@@ -135,4 +135,26 @@ func (p *Ppu) GetPatternTable(paletteIdx, tableIdx uint8) []uint8 {
 	}
 
 	return p.patternDisplayBuf[tableIdx]
+}
+
+// GetNameTable from ppu, useful for debugging
+func (p *Ppu) GetNameTable(paletteIdx, tableIdx uint8) []uint8 {
+	if tableIdx > 1 {
+		mlog.L.Fatalf("Pattern table can only be accessible with index 0, 1. Yours is %v", tableIdx)
+	}
+
+	mlog.L.Fatal("Not implemented!")
+	//// https://www.nesdev.org/wiki/PPU_nametables
+	//// A pattern table has 16x16 tiles, each tile has 8x8 pixels use 2 byte to represent a pixel, so a pattern table has size of 0x1000
+	//for y := uint16(0); y < 30; y++ {
+	//	for x := uint16(0); x < 32; x++ {
+	//		nameTableId := p.tableName[tableIdx][y*32+x]
+	//		//p.patternDisplayBuf[tableIdx][drawByteOffset+0] = actualColor.R
+	//		//p.patternDisplayBuf[tableIdx][drawByteOffset+1] = actualColor.G
+	//		//p.patternDisplayBuf[tableIdx][drawByteOffset+2] = actualColor.B
+	//		//p.patternDisplayBuf[tableIdx][drawByteOffset+3] = actualColor.A
+	//	}
+	//}
+
+	return p.nametableDisplayBuf
 }

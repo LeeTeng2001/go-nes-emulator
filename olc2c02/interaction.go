@@ -24,7 +24,12 @@ func (p *Ppu) CWrite(addr uint16, data uint8) {
 		break
 	case 0x0007: // PPU Data (will auto increment addr to avoid tedious set and write on successive location)
 		p.PWrite(p.addrCombined, data)
-		p.addrCombined++
+		// To speed up write, control register contains info about the orientation of auto increment address
+		if p.regCtrl.GetFlag(regCtrlIncrementMode) {
+			p.addrCombined += 32 // going down row
+		} else {
+			p.addrCombined++
+		}
 	default:
 		mlog.L.Fatalf("Invalid control code %d encountered at ppu!", addr)
 	}
@@ -70,6 +75,28 @@ func (p *Ppu) PWrite(addr uint16, data uint8) {
 		mlog.L.Warn("Pattern memory is usually read only but detected write")
 		p.tablePatterns[(addr&0x1000)>>12][addr&0x0FFF] = data
 	} else if addr >= 0x2000 && addr < 0x3F00 { // nametable memory, has mirroring capability
+		addr = addr & 0x0FFF
+		if !p.disk.MirrorHorizontal { // Vertical
+			if addr <= 0x03FF {
+				p.tableName[0][addr&0x03FF] = data
+			} else if addr >= 0x0400 && addr <= 0x07FF {
+				p.tableName[1][addr&0x03FF] = data
+			} else if addr >= 0x0800 && addr <= 0x0BFF {
+				p.tableName[0][addr&0x03FF] = data
+			} else if addr >= 0x0C00 && addr <= 0x0FFF {
+				p.tableName[1][addr&0x03FF] = data
+			}
+		} else { // horizontal
+			if addr <= 0x03FF {
+				p.tableName[0][addr&0x03FF] = data
+			} else if addr >= 0x0400 && addr <= 0x07FF {
+				p.tableName[0][addr&0x03FF] = data
+			} else if addr >= 0x0800 && addr <= 0x0BFF {
+				p.tableName[1][addr&0x03FF] = data
+			} else if addr >= 0x0C00 && addr <= 0x0FFF {
+				p.tableName[1][addr&0x03FF] = data
+			}
+		}
 	} else if addr >= 0x3F00 && addr <= 0x3FFF { // palette memory
 		addr &= 0x001F
 		switch addr {
@@ -91,10 +118,33 @@ func (p *Ppu) PRead(addr uint16) (data uint8) {
 	addr &= 0x3FFF                 // Addressable range
 	if p.disk.PRead(addr, &data) { // check mapper
 		return data
-	} else if addr < 0x2000 { // pattern memory, table id -> offset
+	} else if addr < 0x2000 { // pattern memory, table id -> offset, but usually handle by disk
 		return p.tablePatterns[(addr&0x1000)>>12][addr&0x0FFF]
 	} else if addr >= 0x2000 && addr < 0x3F00 { // nametable memory, has mirroring capability
-
+		// Specification: https://www.nesdev.org/wiki/PPU_nametables
+		addr = addr & 0x0FFF
+		if !p.disk.MirrorHorizontal { // Vertical
+			if addr <= 0x03FF {
+				data = p.tableName[0][addr&0x03FF]
+			} else if addr >= 0x0400 && addr <= 0x07FF {
+				data = p.tableName[1][addr&0x03FF]
+			} else if addr >= 0x0800 && addr <= 0x0BFF {
+				data = p.tableName[0][addr&0x03FF]
+			} else if addr >= 0x0C00 && addr <= 0x0FFF {
+				data = p.tableName[1][addr&0x03FF]
+			}
+		} else { // horizontal
+			if addr <= 0x03FF {
+				data = p.tableName[0][addr&0x03FF]
+			} else if addr >= 0x0400 && addr <= 0x07FF {
+				data = p.tableName[0][addr&0x03FF]
+			} else if addr >= 0x0800 && addr <= 0x0BFF {
+				data = p.tableName[1][addr&0x03FF]
+			} else if addr >= 0x0C00 && addr <= 0x0FFF {
+				data = p.tableName[1][addr&0x03FF]
+			}
+		}
+		return data
 	} else if addr >= 0x3F00 && addr <= 0x3FFF { // palette memory
 		// Get the offset
 		addr &= 0x001F

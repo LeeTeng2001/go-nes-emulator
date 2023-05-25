@@ -42,8 +42,11 @@ func New(filepath string) *NesDisk {
 		trainerSize = 512
 	}
 
-	// Determine mapper id
+	// Determine mapper id and mirror info
 	nesFile.nMapperId = (nesFile.mapper2 & 0xF0) | (nesFile.mapper1 >> 4)
+	if nesFile.mapper1&1 == 0 {
+		nesFile.MirrorHorizontal = true
+	}
 
 	// Load ROM data
 	prgActualSize := PrgRomSizeUnit * int(nesFile.PrgTotalBank)
