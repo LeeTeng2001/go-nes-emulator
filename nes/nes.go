@@ -3,6 +3,7 @@ package nes
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image/color"
 	"nes_emulator/bus"
 	"nes_emulator/cpu6502"
@@ -13,7 +14,7 @@ import (
 
 // Game implement the gui and is the glue between user and devices
 type Game struct {
-	// Nes components
+	// Nes components, put ppu here to directly access the display buffer
 	bus *bus.Bus
 	ppu *olc2c02.Ppu
 	// Screen info
@@ -27,8 +28,8 @@ type Game struct {
 	diOptMain          *ebiten.DrawImageOptions
 	diOptPatternTable0 *ebiten.DrawImageOptions
 	diOptPatternTable1 *ebiten.DrawImageOptions
-	// Input
-	keys []ebiten.Key
+	// State
+	selectedPaletteId uint8
 }
 
 func New(nesDiskPath string) *Game {
@@ -62,6 +63,7 @@ func New(nesDiskPath string) *Game {
 	g.diOptPatternTable0.GeoM.Translate(256+20, 0)
 	g.diOptPatternTable1.GeoM.Translate(256+20, (240)/2+16)
 
+	// TODO: Setup instruction
 	mlog.L.Info("Draw screen is initialised")
 	return g
 }
@@ -80,24 +82,50 @@ func (g *Game) Update() error {
 	for !g.ppu.FrameCompleteAndTurnOff() {
 		g.bus.Clock()
 	}
-	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
+	// Palette change input
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		g.selectedPaletteId = (g.selectedPaletteId + 1) % 8
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	//ebitenutil.DebugPrint(screen, "Hello, World!")
+	// Background fill
 	screen.Fill(color.RGBA{
 		R: 15,
 		G: 25,
 		B: 100,
 		A: 255,
 	})
+
+	// Draw main screen and 2 pattern tables
 	g.screenImg.WritePixels(g.ppu.GetScreenPixels())
-	g.screenPT0.WritePixels(g.ppu.GetPatternTable(0))
-	g.screenPT1.WritePixels(g.ppu.GetPatternTable(1))
+	g.screenPT0.WritePixels(g.ppu.GetPatternTable(g.selectedPaletteId, 0))
+	g.screenPT1.WritePixels(g.ppu.GetPatternTable(g.selectedPaletteId, 1))
 	screen.DrawImage(g.screenImg, g.diOptMain)
 	screen.DrawImage(g.screenPT0, g.diOptPatternTable0)
 	screen.DrawImage(g.screenPT1, g.diOptPatternTable1)
+
+	// Draw palettes
+	allColors := g.ppu.GetAllColorPalettes()
+	startX := float32(256 + 5)
+	startY := float32(10)
+	areaHeight := float32(256-20-5*7) / 8
+	blockHeight := areaHeight / 4
+	areaIdx := -1
+	for i, singleColor := range allColors {
+		if i%4 == 0 {
+			areaIdx++
+			// Draw selected background
+			if int(g.selectedPaletteId) == areaIdx {
+				vector.DrawFilledRect(screen, startX-1, startY+float32(areaIdx)*(areaHeight+5)-1,
+					10+2, areaHeight+2, color.White, false)
+			}
+		}
+		localBlockOffset := float32(i%4) * blockHeight
+		vector.DrawFilledRect(screen, startX, startY+float32(areaIdx)*(areaHeight+5)+localBlockOffset,
+			10, blockHeight, singleColor, false)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

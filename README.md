@@ -25,7 +25,7 @@
 
 
 # My notes
-- ensure cpu is working independently, use nestest to test!! Stop till unofficial opcode
+- ensure cpu is working independently, use nestest to test, the old one contains some bug remember to find the updated file!! Stop till unofficial opcode
 - components, implement ppu operation
 - PPU is complex, do bit by bit. First make sure pattern table can be loaded and display correctly. 
 

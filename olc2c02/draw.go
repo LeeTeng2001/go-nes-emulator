@@ -82,13 +82,23 @@ func (p *Ppu) getColorFromPaletteRam(paletteId, pixel uint8) color.RGBA {
 	return p.lookupPalette[p.PRead(PaletteRamOffset+(uint16(paletteId)<<2)+uint16(pixel))&0x3F]
 }
 
+// GetAllColorPalettes get the mapped pallets
+func (p *Ppu) GetAllColorPalettes() []color.RGBA {
+	allColors := make([]color.RGBA, 0)
+	for i := uint16(0); i <= 0x1F; i++ {
+		c := p.lookupPalette[p.PRead(PaletteRamOffset+i)]
+		allColors = append(allColors, c)
+	}
+	return allColors
+}
+
 // GetScreenPixels for display screenDisplayBuf
 func (p *Ppu) GetScreenPixels() []byte {
 	return p.screenDisplayBuf
 }
 
-// GetPatternTable from ppu
-func (p *Ppu) GetPatternTable(tableIdx uint8) []uint8 {
+// GetPatternTable from ppu colored with corresponding palette table
+func (p *Ppu) GetPatternTable(paletteIdx, tableIdx uint8) []uint8 {
 	if tableIdx > 1 {
 		mlog.L.Fatalf("Pattern table can only be accessible with index 0, 1. Yours is %v", tableIdx)
 	}
@@ -107,7 +117,7 @@ func (p *Ppu) GetPatternTable(tableIdx uint8) []uint8 {
 				for col := uint16(0); col < 8; col++ {
 					// TODO: Bug in addition? Hardcoded palette id
 					pixel := (tileLsb & 1) + (tileMsb & 1) // get pixel value for 2 bit
-					actualColor := p.getColorFromPaletteRam(0, pixel)
+					actualColor := p.getColorFromPaletteRam(paletteIdx, pixel)
 					// update for next loop
 					tileLsb = tileLsb >> 1
 					tileMsb = tileMsb >> 1
