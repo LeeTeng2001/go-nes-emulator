@@ -7,6 +7,7 @@ import "nes_emulator/disk"
 type CpuDevice interface {
 	Reset()
 	Clock()
+	Nmi()
 }
 
 // PpuDevice has the ppu interface
@@ -18,4 +19,5 @@ type PpuDevice interface {
 	PRead(addr uint16) (data uint8)
 	ConnectDisk(nesDisk *disk.NesDisk)
 	Clock()
+	CheckNmiAndTurnOff() bool
 }

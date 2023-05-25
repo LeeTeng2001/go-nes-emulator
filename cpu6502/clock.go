@@ -52,8 +52,8 @@ func (c *Cpu) Reset() {
 	c.cyclesLeft = resetRequiredCycle
 }
 
-// interrupt request, maskable
-func (c *Cpu) irq() {
+// Irq interrupt request, maskable
+func (c *Cpu) Irq() {
 	if !c.getStatus(FlagI) {
 		// Save pc, status reg at stack
 		c.write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC>>8))
@@ -78,8 +78,8 @@ func (c *Cpu) irq() {
 	}
 }
 
-// non maskable interrupt, similar to irq but the jump address is different
-func (c *Cpu) nmi() {
+// Nmi non maskable interrupt, similar to Irq but the jump address is different
+func (c *Cpu) Nmi() {
 	// Save pc, status reg at stack
 	c.write(baseStackOffset+uint16(c.regStkPtr), uint8(c.regPC>>8))
 	c.regStkPtr--

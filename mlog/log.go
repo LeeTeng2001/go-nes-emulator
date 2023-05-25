@@ -9,7 +9,7 @@ import (
 var L = log.NewWithOptions(os.Stdout, log.Options{
 	//ReportCaller:    true,
 	ReportTimestamp: true,
-	TimeFormat:      time.Kitchen,
+	TimeFormat:      time.DateTime,
 })
 
 func init() {

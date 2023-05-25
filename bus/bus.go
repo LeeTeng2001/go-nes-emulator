@@ -32,12 +32,17 @@ func New(Cpu CpuDevice, Ppu PpuDevice) *Bus {
 		ppu:      Ppu,
 		sysClock: 0,
 	}
+	mlog.L.Infof("Bus is initialised")
 	return &b
 }
 
 func (b *Bus) InsertDisk(nesDisk *disk.NesDisk) {
 	b.disk = nesDisk
-	b.ppu.ConnectDisk(nesDisk)
+	if b.ppu != nil {
+		b.ppu.ConnectDisk(nesDisk)
+	} else {
+		mlog.L.Warnf("Ppu is empty when inserting disk")
+	}
 }
 
 func (b *Bus) Reset() {
@@ -54,6 +59,11 @@ func (b *Bus) Clock() {
 	// The CPU runs 3 times slower than the PPU
 	if b.sysClock%3 == 0 {
 		b.cpu.Clock()
+	}
+
+	// Check nmi in ppu and initiate it in cpu
+	if b.ppu.CheckNmiAndTurnOff() {
+		b.cpu.Nmi()
 	}
 
 	// Update sys clock

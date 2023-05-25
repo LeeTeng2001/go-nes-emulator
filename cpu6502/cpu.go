@@ -3,6 +3,7 @@ package cpu6502
 import (
 	"github.com/charmbracelet/log"
 	"nes_emulator/bus"
+	"nes_emulator/mlog"
 	"os"
 )
 
@@ -46,6 +47,7 @@ type Cpu struct {
 func New() *Cpu {
 	newCpu := &Cpu{}
 	newCpu.initInstLookup()
+	mlog.L.Info("Cpu is initialised")
 	return newCpu
 }
 
@@ -61,6 +63,7 @@ func NewDebug() *Cpu {
 		ReportTimestamp: true,
 	})
 
+	mlog.L.Info("Cpu is initialised with debug enabled")
 	return newCpu
 }
 

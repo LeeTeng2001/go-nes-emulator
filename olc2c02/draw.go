@@ -1,6 +1,9 @@
 package olc2c02
 
-import "image/color"
+import (
+	"image/color"
+	"nes_emulator/mlog"
+)
 
 // For more palette: https://www.nesdev.org/wiki/PPU_palettes
 
@@ -69,4 +72,57 @@ func (p *Ppu) initLookupPalette() {
 	p.lookupPalette[0x3D] = color.RGBA{R: 160, G: 162, B: 160, A: 255}
 	p.lookupPalette[0x3E] = color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	p.lookupPalette[0x3F] = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+}
+
+// utility function
+func (p *Ppu) getColorFromPaletteRam(paletteId, pixel uint8) color.RGBA {
+	// https://www.nesdev.org/wiki/PPU_palettes
+	// take palette id (has 4 color) and pixel in palette offset and return corresponding color
+	// The last 0x3F is mirror of out of bound as specified
+	return p.lookupPalette[p.PRead(PaletteRamOffset+(uint16(paletteId)<<2)+uint16(pixel))&0x3F]
+}
+
+// GetScreenPixels for display screenDisplayBuf
+func (p *Ppu) GetScreenPixels() []byte {
+	return p.screenDisplayBuf
+}
+
+// GetPatternTable from ppu
+func (p *Ppu) GetPatternTable(tableIdx uint8) []uint8 {
+	if tableIdx > 1 {
+		mlog.L.Fatalf("Pattern table can only be accessible with index 0, 1. Yours is %v", tableIdx)
+	}
+
+	// https://www.nesdev.org/wiki/PPU_pattern_tables
+	// A pattern table has 16x16 tiles, each tile has 8x8 pixels use 2 byte to represent a pixel, so a pattern table has size of 0x1000
+	for nTileY := uint16(0); nTileY < 16; nTileY++ {
+		for nTileX := uint16(0); nTileX < 16; nTileX++ {
+			// this is byte offset, each tile has 16 bytes, 8 pixels
+			tileByteOffset := nTileY*16*16 + nTileX*16
+			for row := uint16(0); row < 8; row++ {
+				// pattern table + offset to find the low up tile
+				tileLsb := p.PRead(uint16(tableIdx)*0x1000 + tileByteOffset + row + 0)
+				tileMsb := p.PRead(uint16(tableIdx)*0x1000 + tileByteOffset + row + 8)
+				// Add them and find corresponding palette id
+				for col := uint16(0); col < 8; col++ {
+					// TODO: Bug in addition? Hardcoded palette id
+					pixel := (tileLsb & 1) + (tileMsb & 1) // get pixel value for 2 bit
+					actualColor := p.getColorFromPaletteRam(0, pixel)
+					// update for next loop
+					tileLsb = tileLsb >> 1
+					tileMsb = tileMsb >> 1
+
+					// set pixel color, note because we're adding from lowest bit, so
+					// the pixel starts from right on actual screenDisplayBuf
+					drawByteOffset := 4 * ((nTileY*8+row)*(16*8) + (nTileX*8 + (7 - col)))
+					p.patternDisplayBuf[tableIdx][drawByteOffset+0] = actualColor.R
+					p.patternDisplayBuf[tableIdx][drawByteOffset+1] = actualColor.G
+					p.patternDisplayBuf[tableIdx][drawByteOffset+2] = actualColor.B
+					p.patternDisplayBuf[tableIdx][drawByteOffset+3] = actualColor.A
+				}
+			}
+		}
+	}
+
+	return p.patternDisplayBuf[tableIdx]
 }

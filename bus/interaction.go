@@ -25,7 +25,7 @@ func (b *Bus) CRead(addr uint16) (data uint8) {
 	} else if addr < RamAccessSize {
 		return b.ram[addr&RamAccessMask]
 	} else if addr >= RamAccessSize && addr < PpuAccessRegionEnd {
-		b.ppu.CRead(addr & PpuAccessMask)
+		return b.ppu.CRead(addr & PpuAccessMask)
 	}
 	return 0
 }
