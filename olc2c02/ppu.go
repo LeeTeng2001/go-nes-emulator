@@ -49,17 +49,30 @@ type Ppu struct {
 	regCtrl register
 	regMask register
 	regStat register
+	// nametable scrolling, t = temp: https://www.nesdev.org/wiki/PPU_scrolling with loopy register
+	regLoopyVram registerLoopy // this is for implementing loopy rendering! Not used in NES
+	regLoopyTram registerLoopy
+	scrollFineX  uint8
 	// addr buffer (2 cycle to write 2 bytes to ppu, so buffer first one)
-	hasWriteBuffer bool
-	addrCombined   uint16
-	dataBuffer     uint8
+	addressLatch bool
+	dataBuffer   uint8
+	// Next render tile information (ref: ppu clock update diagram)
+	bgNextTileId     uint8
+	bgNextTileAttrib uint8
+	bgNextTileLsb    uint8
+	bgNextTileMsb    uint8
+	// Shifter for scrolling
+	bgShifterPatternLow  uint16
+	bgShifterPatternHigh uint16
+	bgShifterAttribLow   uint16
+	bgShifterAttribHigh  uint16
 }
 
 func New() *Ppu {
 	p := &Ppu{
 		screenDisplayBuf:    make([]byte, NesDisplayWidth*NesDisplayHeight*4),
 		nametableDisplayBuf: make([]byte, NesDisplayWidth*NesDisplayHeight*4),
-		hasWriteBuffer:      false,
+		addressLatch:        false,
 	}
 	p.patternDisplayBuf[0] = make([]byte, PatternTableSize*4)
 	p.patternDisplayBuf[1] = make([]byte, PatternTableSize*4)
@@ -79,7 +92,7 @@ func New() *Ppu {
 	}
 
 	p.initLookupPalette()
-	mlog.L.Infof("Ppu is initialised with screenDisplayBuf dim (%v, %v)", NesDisplayWidth, NesDisplayHeight)
+	mlog.L.Infof("Ppu is initialised with screen dim (%v, %v)", NesDisplayWidth, NesDisplayHeight)
 	return p
 }
 

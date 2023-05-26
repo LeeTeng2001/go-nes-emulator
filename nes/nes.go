@@ -2,9 +2,12 @@ package nes
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/vector"
-	"image/color"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
+	"io"
+	"io/fs"
 	"nes_emulator/bus"
 	"nes_emulator/cpu6502"
 	"nes_emulator/disk"
@@ -15,8 +18,9 @@ import (
 // Game implement the gui and is the glue between user and devices
 type Game struct {
 	// Nes components, put ppu here to directly access the display buffer
-	bus *bus.Bus
-	ppu *olc2c02.Ppu
+	bus     *bus.Bus
+	ppu     *olc2c02.Ppu
+	nesDisk *disk.NesDisk
 	// Screen info
 	screenW int
 	screenH int
@@ -30,9 +34,10 @@ type Game struct {
 	diOptPatternTable1 *ebiten.DrawImageOptions
 	// State
 	selectedPaletteId uint8
+	textFont          font.Face
 }
 
-func New(nesDiskPath string) *Game {
+func New() *Game {
 	// Assemble different part of hardware
 	//cpu := cpu6502.NewDebug() // TODO: Remove debug
 	cpu := cpu6502.New()
@@ -40,10 +45,6 @@ func New(nesDiskPath string) *Game {
 	nesBus := bus.New(cpu, ppu)
 	cpu.ConnectBus(nesBus)
 	ppu.ConnectBus(nesBus)
-	nesFile := disk.New(nesDiskPath)
-	//nesFile.PrintInfo()
-	nesBus.InsertDisk(nesFile)
-	nesBus.Reset()
 
 	// Setup draw buffer, screen
 	g := &Game{
@@ -63,6 +64,20 @@ func New(nesDiskPath string) *Game {
 	g.diOptPatternTable0.GeoM.Translate(256+20, 0)
 	g.diOptPatternTable1.GeoM.Translate(256+20, (240)/2+16)
 
+	// Initialise draw font
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	if err != nil {
+		mlog.L.Fatal(err)
+	}
+	g.textFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    12,
+		DPI:     100,
+		Hinting: font.HintingVertical,
+	})
+	if err != nil {
+		mlog.L.Fatal(err)
+	}
+
 	// TODO: Setup instruction
 	mlog.L.Info("Draw screen is initialised")
 	return g
@@ -78,53 +93,59 @@ func (g *Game) Run() {
 }
 
 func (g *Game) Update() error {
-	// TODO: Select palette, fix clock
-	for !g.ppu.FrameCompleteAndTurnOff() {
-		g.bus.Clock()
+	// Check drop file input to refresh nes
+	if files := ebiten.DroppedFiles(); files != nil {
+		if err := fs.WalkDir(files, ".", func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				mlog.L.Fatalf("Not possible errors encounter during walkdir: %s", err)
+			}
+			if d.IsDir() { // skip dir
+				return nil
+			}
+			mlog.L.Printf("Name: %s, Path: %s", d.Name(), path)
+			data, err := fs.ReadFile(files, path) // read file content
+			if err != nil {
+				mlog.L.Fatalf("Error occurs when reading content of: %s", path)
+			}
+			f, err := files.Open(path) // open file
+			if err != nil {
+				return err
+			}
+			defer func() {
+				_ = f.Close()
+			}()
+			// check valid nes file
+			newNesDisk := disk.NewFromBytes(data)
+			if newNesDisk != nil {
+				newNesDisk.PrintInfo()
+				g.bus.InsertDisk(newNesDisk)
+				g.bus.Reset()
+				g.nesDisk = newNesDisk
+				return io.EOF
+			}
+			return nil
+		}); err != nil {
+
+		}
 	}
-	// Palette change input
-	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		g.selectedPaletteId = (g.selectedPaletteId + 1) % 8
+	if g.nesDisk != nil {
+		// TODO: Select palette, fix clock
+		for !g.ppu.FrameCompleteAndTurnOff() {
+			g.bus.Clock()
+		}
+		// Palette change input
+		if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+			g.selectedPaletteId = (g.selectedPaletteId + 1) % 8
+		}
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Background fill
-	screen.Fill(color.RGBA{
-		R: 15,
-		G: 25,
-		B: 100,
-		A: 255,
-	})
-
-	// Draw main screen and 2 pattern tables
-	g.screenImg.WritePixels(g.ppu.GetScreenPixels())
-	g.screenPT0.WritePixels(g.ppu.GetPatternTable(g.selectedPaletteId, 0))
-	g.screenPT1.WritePixels(g.ppu.GetPatternTable(g.selectedPaletteId, 1))
-	screen.DrawImage(g.screenImg, g.diOptMain)
-	screen.DrawImage(g.screenPT0, g.diOptPatternTable0)
-	screen.DrawImage(g.screenPT1, g.diOptPatternTable1)
-
-	// Draw palettes
-	allColors := g.ppu.GetAllColorPalettes()
-	startX := float32(256 + 5)
-	startY := float32(10)
-	areaHeight := float32(256-20-5*7) / 8
-	blockHeight := areaHeight / 4
-	areaIdx := -1
-	for i, singleColor := range allColors {
-		if i%4 == 0 {
-			areaIdx++
-			// Draw selected background
-			if int(g.selectedPaletteId) == areaIdx {
-				vector.DrawFilledRect(screen, startX-1, startY+float32(areaIdx)*(areaHeight+5)-1,
-					10+2, areaHeight+2, color.White, false)
-			}
-		}
-		localBlockOffset := float32(i%4) * blockHeight
-		vector.DrawFilledRect(screen, startX, startY+float32(areaIdx)*(areaHeight+5)+localBlockOffset,
-			10, blockHeight, singleColor, false)
+	if g.nesDisk == nil {
+		g.DrawMainMenu(screen)
+	} else {
+		g.DrawGame(screen)
 	}
 }
 

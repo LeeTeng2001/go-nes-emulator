@@ -6,6 +6,17 @@ func (p *Ppu) CWrite(addr uint16, data uint8) {
 	switch addr {
 	case 0x0000: // Control
 		p.regCtrl.data = data
+		// Update loopy
+		if p.regCtrl.GetFlag(regCtrlNameTableX) {
+			p.regLoopyTram.SetFlag(regLoopyNametableX, 1)
+		} else {
+			p.regLoopyTram.SetFlag(regLoopyNametableX, 0)
+		}
+		if p.regCtrl.GetFlag(regCtrlNameTableY) {
+			p.regLoopyTram.SetFlag(regLoopyNametableY, 1)
+		} else {
+			p.regLoopyTram.SetFlag(regLoopyNametableY, 0)
+		}
 	case 0x0001: // Mask
 		p.regMask.data = data
 	case 0x0002: // Status (can't write to)
@@ -13,22 +24,31 @@ func (p *Ppu) CWrite(addr uint16, data uint8) {
 	case 0x0003: // OAM Address
 	case 0x0004: // OAM Data
 	case 0x0005: // Scroll
-	case 0x0006: // PPU Address (2 cycle to write full address)
-		if !p.hasWriteBuffer {
-			p.hasWriteBuffer = true
-			p.addrCombined = (p.addrCombined & 0x00FF) | (uint16(data) << 8)
+		if !p.addressLatch {
+			p.addressLatch = true
+			p.scrollFineX = data & 0x07 // pixel offset
+			p.regLoopyTram.SetFlag(regLoopyCoarseX, data>>3)
 		} else {
-			p.hasWriteBuffer = false
-			p.addrCombined = (p.addrCombined & 0xFF00) | uint16(data)
+			p.addressLatch = false
+			p.regLoopyTram.SetFlag(regLoopyFineY, data&0x07)
+			p.regLoopyTram.SetFlag(regLoopyCoarseY, data>>3)
 		}
-		break
+	case 0x0006: // PPU Address (2 cycle to write full address)
+		if !p.addressLatch {
+			p.addressLatch = true
+			p.regLoopyTram.data = (p.regLoopyTram.data & 0x00FF) | (uint16(data) << 8)
+		} else {
+			p.addressLatch = false
+			p.regLoopyTram.data = (p.regLoopyTram.data & 0xFF00) | uint16(data)
+			p.regLoopyVram.data = p.regLoopyTram.data // update vram once all address has been writte
+		}
 	case 0x0007: // PPU Data (will auto increment addr to avoid tedious set and write on successive location)
-		p.PWrite(p.addrCombined, data)
+		p.PWrite(p.regLoopyVram.data, data)
 		// To speed up write, control register contains info about the orientation of auto increment address
 		if p.regCtrl.GetFlag(regCtrlIncrementMode) {
-			p.addrCombined += 32 // going down row
+			p.regLoopyVram.data += 32 // going down row
 		} else {
-			p.addrCombined++
+			p.regLoopyVram.data++
 		}
 	default:
 		mlog.L.Fatalf("Invalid control code %d encountered at ppu!", addr)
@@ -46,7 +66,7 @@ func (p *Ppu) CRead(addr uint16) (data uint8) {
 		//p.regStat.SetFlag(regStatVertZeroBlank, true)
 		data = (p.regStat.data & 0xE0) | (p.dataBuffer & 0x1F)
 		p.regStat.SetFlag(regStatVertZeroBlank, false)
-		p.hasWriteBuffer = false
+		p.addressLatch = false
 		return data
 	case 0x0003: // OAM Address
 	case 0x0004: // OAM Data
@@ -55,11 +75,16 @@ func (p *Ppu) CRead(addr uint16) (data uint8) {
 		mlog.L.Fatal("You can't read from address register in ppu!")
 	case 0x0007: // PPU Data (2 cycle for most cases except for palette)
 		data = p.dataBuffer
-		p.dataBuffer = p.PRead(p.addrCombined)
-		if p.addrCombined >= PaletteRamOffset { // immediate output for palette
+		p.dataBuffer = p.PRead(p.regLoopyVram.data)
+		if p.regLoopyVram.data >= PaletteRamOffset { // immediate output for palette
 			data = p.dataBuffer
 		}
-		p.addrCombined++
+		// Increment for subsequent read for row/col
+		if p.regCtrl.GetFlag(regCtrlIncrementMode) {
+			p.regLoopyVram.data += 32
+		} else {
+			p.regLoopyVram.data++
+		}
 		return data
 	default:
 		mlog.L.Fatalf("Invalid control code %d encountered at ppu!", addr)

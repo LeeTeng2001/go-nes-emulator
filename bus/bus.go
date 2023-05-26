@@ -46,6 +46,7 @@ func (b *Bus) InsertDisk(nesDisk *disk.NesDisk) {
 }
 
 func (b *Bus) Reset() {
+	mlog.L.Info("Resetting bus")
 	b.cpu.Reset()
 	b.ppu.Reset()
 	b.sysClock = 0

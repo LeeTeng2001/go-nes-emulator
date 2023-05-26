@@ -11,11 +11,16 @@ func New(filepath string) *NesDisk {
 	if err != nil {
 		mlog.L.Fatal("Failed to read: " + filepath)
 	}
+	return NewFromBytes(data)
+}
+
+func NewFromBytes(data []byte) *NesDisk {
 	nesFile := NesDisk{}
 
 	// Check valid
 	if len(data) < 4 {
-		mlog.L.Fatal("file is not a nes file: " + filepath)
+		mlog.L.Error("Data is too small for a nes file")
+		return nil
 	}
 	if data[0] == 'N' && data[1] == 'E' && data[2] == 'S' && data[3] == 0x1A {
 		nesFile.FormatIsNes2 = false
@@ -24,7 +29,8 @@ func New(filepath string) *NesDisk {
 			nesFile.FormatIsNes2 = true
 		}
 	} else {
-		mlog.L.Fatal("file is not a nes file: " + filepath)
+		mlog.L.Error("Data is not a nes file")
+		return nil
 	}
 
 	// Load, TODO assume it's correct
