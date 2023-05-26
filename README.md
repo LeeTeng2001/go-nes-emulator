@@ -36,6 +36,19 @@
   - Write to $4016 or %4017 to capture snapshot of controller (1/2) state
   - Read polled data one bit at a time from $4016 or $4017 starting from MSB
   - Supports two controller
+- Sprites: https://www.nesdev.org/wiki/PPU_OAM
+  - Where is sprite stored? In object attribute memory (special ram in ppu, not accessible directly)
+  - OAM is 256 bytes, each sprite has (x, y, tileID, attribute info) that takes up 4 bytes,
+  - A total of 64 sprites can be stored
+  - Support two types of sprite, 8x8 and 8x16
+  - Being accessed by CPU via OAM reg (one write because OAM address range is 256) to PPU
+  - If we need to populate whole sprite area via OAM reg needs 256 rw, too slow
+  - Mystical register $4014 can be write to, at this point CPU is suspended, DMA kicks in to write whole pages from CPU 256 times to OAM
+  - 4 times faster than writing OAM reg
+  - Render process: When scanline reach the end, it evaluates which sprite to render in next frame (by comparing y axis)
+  - rendering along a scanline increase cycle while decrease sprite X, so if sprite x == 0 we should start to render the sprite
+  - Nes can only render maximum of 8 sprites in a given scanline, if we got more than that then a sprite overflow flag should be set
+  - The lowest bit sprite has the maximum priority if overlap.
 
 # Running this project
 

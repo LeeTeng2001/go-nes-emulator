@@ -2,6 +2,7 @@ package olc2c02
 
 import (
 	"nes_emulator/mlog"
+	"nes_emulator/utils"
 )
 
 func (p *Ppu) CheckNmiAndTurnOff() bool {
@@ -36,13 +37,23 @@ func (p *Ppu) loadBgShifters() {
 }
 
 func (p *Ppu) updateShifters() {
-	if !p.regMask.GetFlag(regMaskRenderBG) {
-		return
+	if p.regMask.GetFlag(regMaskRenderBG) {
+		p.bgShifterPatternLow <<= 1
+		p.bgShifterPatternHigh <<= 1
+		p.bgShifterAttribLow <<= 1
+		p.bgShifterAttribHigh <<= 1
 	}
-	p.bgShifterPatternLow <<= 1
-	p.bgShifterPatternHigh <<= 1
-	p.bgShifterAttribLow <<= 1
-	p.bgShifterAttribHigh <<= 1
+	if p.regMask.GetFlag(regMaskRenderSprite) && p.cycle >= 1 && p.cycle < 258 {
+		// Only shift if coordinate == 0: ie in range for drawing
+		for i := uint8(0); i < p.nextLineSpriteCount; i++ {
+			if p.nextLineScanlineSprites[i].x > 0 {
+				p.nextLineScanlineSprites[i].x--
+			} else {
+				p.nextLineSpriteShiftPtrnLo[i] <<= 1
+				p.nextLineSpriteShiftPtrnHi[i] <<= 1
+			}
+		}
+	}
 }
 
 func (p *Ppu) Clock() {
@@ -51,9 +62,15 @@ func (p *Ppu) Clock() {
 
 	// This wrap all visible scanline operation
 	if p.scanLine >= -1 && p.scanLine < 240 {
-		// Check if we leave vertical blanking
+		// Background rendering ------------------------------------------------
+		// Check if we leave vertical blanking, at the start of new frame
 		if p.scanLine == -1 && p.cycle == 1 {
 			p.regStat.SetFlag(regStatVertZeroBlank, false)
+			p.regStat.SetFlag(regStatSpriteOverflow, false)
+			for i := 0; i < 8; i++ {
+				p.nextLineSpriteShiftPtrnLo[i] = 0
+				p.nextLineSpriteShiftPtrnHi[i] = 0
+			}
 		}
 
 		// Code ref: https://github.com/OneLoneCoder/olcNES/blob/master/Part%20%234%20-%20PPU%20Backgrounds/olc2C02.cpp
@@ -111,6 +128,121 @@ func (p *Ppu) Clock() {
 		if p.scanLine == -1 && p.cycle >= 280 && p.cycle < 305 { // ready for new frame
 			p.regLoopyVram.TransferAddressY(p.regMask, p.regLoopyTram)
 		}
+		if p.cycle == 338 || p.cycle == 340 { // last cycle, read next row tile
+			p.bgNextTileId = p.PRead(0x2000 | p.regLoopyVram.data&0x0FFF)
+		}
+
+		// Foreground rendering ------------------------------------------------
+		// This rendering doesn't follow the sprite evaluation in NES
+		// we evaluate everything at specific cycle to make things simple
+		if p.cycle == 257 && p.scanLine >= 0 { // end of scanline + first out of visible range
+			// 1. clear next line buffer
+			for idx, s := range p.nextLineScanlineSprites {
+				s.x = 0xFF
+				s.y = 0xFF
+				s.id = 0xFF
+				s.attribute = 0xFF
+				p.nextLineSpriteShiftPtrnLo[idx] = 0
+				p.nextLineSpriteShiftPtrnHi[idx] = 0
+			}
+			p.nextLineSpriteCount = 0
+
+			// 2. Evaluate next line visible sprites by comparing y diff for all OAM sprites
+			for nOAMEntry := 0; nOAMEntry < 64; nOAMEntry++ {
+				yDiff := p.scanLine - int16(p.oamMem[nOAMEntry].y)
+				spriteYSize := int16(8)
+				if p.regCtrl.GetFlag(regCtrlSpriteSize) {
+					spriteYSize = 16
+				}
+
+				if yDiff >= 0 && yDiff < spriteYSize { // scanline in range
+					if p.nextLineSpriteCount < 8 { // next line has storage left
+						p.nextLineScanlineSprites[p.nextLineSpriteCount] = p.oamMem[nOAMEntry]
+						p.nextLineSpriteCount++
+					} else { // sprite overflow
+						p.regStat.SetFlag(regStatSpriteOverflow, true)
+						mlog.L.Warn("Sprite overflow for single scanline")
+					}
+				}
+			}
+		}
+
+		// Get data from pattern memory
+		if p.cycle == 340 { // end of cycle
+			// https://www.nesdev.org/wiki/PPU_OAM
+			for i := uint8(0); i < p.nextLineSpriteCount; i++ {
+				var patternBitsLow, patternBitsHigh uint8
+				var patternAddrLow, patternAddrHigh uint16
+				patternTableAddr := uint16(0)
+
+				// Workflow: choose pattern table, choose tile, choose row
+
+				if !p.regCtrl.GetFlag(regCtrlSpriteSize) {
+					// 8x8 sprite
+					// Pattern table (implied by control reg)
+					if p.regCtrl.GetFlag(regCtrlPatternSprite) {
+						patternTableAddr = 1 << 12
+					}
+					if p.nextLineScanlineSprites[i].attribute&0x80 == 0 {
+						// normal
+						patternAddrLow = patternTableAddr |
+							(uint16(p.nextLineScanlineSprites[i].id) << 4) |
+							(uint16(p.scanLine) - uint16(p.nextLineScanlineSprites[i].y))
+					} else {
+						// flipped vert
+						patternAddrLow = patternTableAddr |
+							(uint16(p.nextLineScanlineSprites[i].id) << 4) |
+							(7 - (uint16(p.scanLine) - uint16(p.nextLineScanlineSprites[i].y)))
+					}
+				} else {
+					// 8x16 sprite
+					// Pattern table (implied by id)
+					if p.nextLineScanlineSprites[i].id&1 != 0 {
+						patternTableAddr = 1 << 12
+					}
+					if p.nextLineScanlineSprites[i].attribute&0x80 == 0 {
+						// normal
+						// work out top half or bottom half
+						if p.scanLine-int16(p.nextLineScanlineSprites[i].y) < 8 {
+							patternAddrLow = patternTableAddr |
+								(uint16(p.nextLineScanlineSprites[i].id&0xFE) << 4) |
+								((uint16(p.scanLine) - uint16(p.nextLineScanlineSprites[i].y)) & 0x07)
+						} else {
+							patternAddrLow = patternTableAddr |
+								((uint16(p.nextLineScanlineSprites[i].id&0xFE) + 1) << 4) |
+								((uint16(p.scanLine) - uint16(p.nextLineScanlineSprites[i].y)) & 0x07)
+						}
+					} else {
+						// flipped vert
+						// work out top half or bottom half
+						if p.scanLine-int16(p.nextLineScanlineSprites[i].y) < 8 {
+							patternAddrLow = patternTableAddr |
+								((uint16(p.nextLineScanlineSprites[i].id&0xFE) + 1) << 4) |
+								((7 - (uint16(p.scanLine) - uint16(p.nextLineScanlineSprites[i].y))) & 0x07)
+						} else {
+							patternAddrLow = patternTableAddr |
+								(uint16(p.nextLineScanlineSprites[i].id&0xFE) << 4) |
+								((7 - (uint16(p.scanLine) - uint16(p.nextLineScanlineSprites[i].y))) & 0x07)
+						}
+					}
+				}
+
+				// Get high and read corresponding data
+				patternAddrHigh = patternAddrLow + 8
+				patternBitsLow = p.PRead(patternAddrLow)
+				patternBitsHigh = p.PRead(patternAddrHigh)
+
+				// Determine horizontal flip
+				if p.nextLineScanlineSprites[i].attribute&0x40 != 0 {
+					patternBitsLow = utils.FlipByte(patternBitsLow)
+					patternBitsHigh = utils.FlipByte(patternBitsHigh)
+				}
+
+				// Load into shift register
+				p.nextLineSpriteShiftPtrnLo[i] = patternBitsLow
+				p.nextLineSpriteShiftPtrnHi[i] = patternBitsHigh
+			}
+		}
 	}
 
 	if p.scanLine == 240 {
@@ -127,29 +259,81 @@ func (p *Ppu) Clock() {
 
 	// Write pixel to screen buffer
 	if p.cycle < 256 && p.scanLine >= 0 && p.scanLine < 240 {
+		// Background color and palette
+		bgPixel := uint8(0)
+		bgPalette := uint8(0)
 		if p.regMask.GetFlag(regMaskRenderBG) {
 			bitMux := 0x8000 >> p.scrollFineX // select shift register
-			bgPixel := uint8(0)
 			if p.bgShifterPatternLow&uint16(bitMux) != 0 {
 				bgPixel |= 0b01
 			}
 			if p.bgShifterPatternHigh&uint16(bitMux) != 0 {
 				bgPixel |= 0b10
 			}
-			bgPalette := uint8(0)
 			if p.bgShifterAttribLow&uint16(bitMux) != 0 {
 				bgPalette |= 0b01
 			}
 			if p.bgShifterAttribHigh&uint16(bitMux) != 0 {
 				bgPalette |= 0b10
 			}
-			pixelColor := p.getColorFromPaletteRam(bgPalette, bgPixel)
-			i := 4 * (int(p.cycle) + int(p.scanLine)*256)
-			p.screenDisplayBuf[i] = pixelColor.R
-			p.screenDisplayBuf[i+1] = pixelColor.G
-			p.screenDisplayBuf[i+2] = pixelColor.B
-			p.screenDisplayBuf[i+3] = pixelColor.A
 		}
+
+		// Foreground color and palette
+		fgPixel := uint8(0)
+		fgPalette := uint8(0)
+		fgPriority := uint8(0)
+		if p.regMask.GetFlag(regMaskRenderSprite) {
+			// Find the sprite from the highest render priority
+			for i := uint8(0); i < p.nextLineSpriteCount; i++ {
+				if p.nextLineScanlineSprites[i].x == 0 {
+					if p.nextLineSpriteShiftPtrnLo[i]&0x80 != 0 {
+						fgPixel |= 0b01
+					}
+					if p.nextLineSpriteShiftPtrnHi[i]&0x80 != 0 {
+						fgPixel |= 0b10
+					}
+					// Unlike bg, sprite palette is contains inside attribute instead of region
+					// Offset by 4 because first 4 is reserved for background
+					fgPalette = p.nextLineScanlineSprites[i].attribute&0x03 + 0x04
+					if p.nextLineScanlineSprites[i].attribute&0x20 == 0 { // allow sprite to go behind bg
+						fgPriority = 1
+					}
+
+					// found top priority sprite with non-transparent pixel
+					if fgPixel != 0 {
+						break
+					}
+				}
+			}
+		}
+
+		// 0, 0 is the default id both fg and bg is transparent
+		finalPixel := uint8(0)
+		finalPalette := uint8(0)
+
+		// competition to determine pixel output
+		if bgPixel == 0 && fgPixel != 0 {
+			finalPixel = fgPixel
+			finalPalette = fgPalette
+		} else if bgPixel != 0 && fgPixel == 0 {
+			finalPixel = bgPixel
+			finalPalette = bgPalette
+		} else if bgPixel != 0 && fgPixel != 0 { // both visible, check priority
+			if fgPriority != 0 {
+				finalPixel = fgPixel
+				finalPalette = fgPalette
+			} else {
+				finalPixel = bgPixel
+				finalPalette = bgPalette
+			}
+		}
+
+		pixelColor := p.getColorFromPaletteRam(finalPalette, finalPixel)
+		i := 4 * (int(p.cycle) + int(p.scanLine)*256)
+		p.screenDisplayBuf[i] = pixelColor.R
+		p.screenDisplayBuf[i+1] = pixelColor.G
+		p.screenDisplayBuf[i+2] = pixelColor.B
+		p.screenDisplayBuf[i+3] = pixelColor.A
 	}
 
 	//// Fake some noise for now

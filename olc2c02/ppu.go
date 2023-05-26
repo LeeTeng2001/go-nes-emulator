@@ -32,6 +32,14 @@ type Ppu struct {
 	tableName     [2][NameTableSize]uint8
 	tablePatterns [2][PatternTableSize]uint8
 	tablePalette  [32]uint8
+	// OAM
+	oamMem     [64]spriteObjEntry
+	oamAddrBuf uint8
+	// OAM drawing state
+	nextLineScanlineSprites   [8]spriteObjEntry
+	nextLineSpriteCount       uint8
+	nextLineSpriteShiftPtrnLo [8]uint8
+	nextLineSpriteShiftPtrnHi [8]uint8
 	// Internal
 	lookupPalette  [PreDefPaletteSize]color.RGBA
 	scanLine       int16

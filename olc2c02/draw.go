@@ -115,8 +115,7 @@ func (p *Ppu) GetPatternTable(paletteIdx, tableIdx uint8) []uint8 {
 				tileMsb := p.PRead(uint16(tableIdx)*0x1000 + tileByteOffset + row + 8)
 				// Add them and find corresponding palette id
 				for col := uint16(0); col < 8; col++ {
-					// TODO: Bug in addition? Hardcoded palette id
-					pixel := (tileLsb & 1) + (tileMsb & 1) // get pixel value for 2 bit
+					pixel := ((tileLsb & 1) << 1) | (tileMsb & 1) // get pixel value for 2 bit
 					actualColor := p.getColorFromPaletteRam(paletteIdx, pixel)
 					// update for next loop
 					tileLsb = tileLsb >> 1

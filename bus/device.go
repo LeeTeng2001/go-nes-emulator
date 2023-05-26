@@ -21,4 +21,5 @@ type PpuDevice interface {
 	Reset()
 	Clock()
 	CheckNmiAndTurnOff() bool
+	SetOAMAsBytes(addr uint8, data uint8) // for DMA
 }

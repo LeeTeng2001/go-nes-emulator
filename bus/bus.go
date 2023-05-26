@@ -26,9 +26,15 @@ type Bus struct {
 	disk     *disk.NesDisk
 	ram      [RamPhysicalSize]uint8
 	sysClock uint64
-	// Input bits for two controller at current frame and it's stored state
+	// Input bits for two controller at current update and it's snapshot state
 	controllerInput [2]uint8
 	controllerState [2]uint8
+	// DMA for OAM
+	dmaTransferIsOn bool
+	dmaDummyIsOn    bool
+	dmaPage         uint8
+	dmaAddr         uint8
+	dmaData         uint8
 }
 
 func New(Cpu CpuDevice, Ppu PpuDevice) *Bus {
@@ -72,7 +78,28 @@ func (b *Bus) Clock() {
 
 	// The CPU runs 3 times slower than the PPU
 	if b.sysClock%3 == 0 {
-		b.cpu.Clock()
+		// if DMA is on for OAM, suspend clock! but not immediate because of synchronisation nature in hardware
+		if b.dmaTransferIsOn {
+			if b.dmaDummyIsOn { // wait for correct clock cycle to synchronise
+				if b.sysClock%2 == 1 {
+					b.dmaDummyIsOn = false
+				}
+			} else {
+				// Even read from cpu, odd write to ppu
+				if b.sysClock%2 == 0 {
+					b.dmaData = b.CRead(uint16(b.dmaPage)<<8 | uint16(b.dmaAddr))
+				} else {
+					b.ppu.SetOAMAsBytes(b.dmaAddr, b.dmaData)
+					b.dmaAddr++
+					if b.dmaAddr == 0 { // wrap around, has completed DMA transfer
+						b.dmaTransferIsOn = false
+						b.dmaDummyIsOn = true
+					}
+				}
+			}
+		} else {
+			b.cpu.Clock()
+		}
 	}
 
 	// Check nmi in ppu and initiate it in cpu

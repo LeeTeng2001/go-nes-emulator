@@ -22,7 +22,9 @@ func (p *Ppu) CWrite(addr uint16, data uint8) {
 	case 0x0002: // Status (can't write to)
 		mlog.L.Fatal("You can't write to status register in ppu!")
 	case 0x0003: // OAM Address
+		p.oamAddrBuf = data
 	case 0x0004: // OAM Data
+		p.SetOAMAsBytes(p.oamAddrBuf, data)
 	case 0x0005: // Scroll
 		if !p.addressLatch {
 			p.addressLatch = true
@@ -69,7 +71,9 @@ func (p *Ppu) CRead(addr uint16) (data uint8) {
 		p.addressLatch = false
 		return data
 	case 0x0003: // OAM Address
+		mlog.L.Fatal("Doesn't make sense to read from OAM address register in ppu!")
 	case 0x0004: // OAM Data
+		return p.GetOAMAsBytes(p.oamAddrBuf)
 	case 0x0005: // Scroll
 	case 0x0006: // PPU Address
 		mlog.L.Fatal("You can't read from address register in ppu!")
