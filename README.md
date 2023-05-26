@@ -20,7 +20,7 @@
   - Pixel value of 0 can be thought as transparent.
 - Understand scanline and out of range scan! 
 - The vertical blank ppu status register is important as it tells cpu when it's safe to update! Use for synchronising with cpu and ppu. When it reach the first out of range scaneline it'll also emit a NMI to cpu
-- Nametable (https://www.nesdev.org/wiki/PPU_nametables), quite complicated:
+- Nametable (https://www.nesdev.org/wiki/PPU_nametables), quite complicated, most complex part of emulator:
   - Single nametable is (32x8) x (32x8), we have 4 nametable, one pattern table can fit 1/4 of single nametable. 
   - The last 2 row of nametable is used as attribute table
   - That's how nintendo get its display resolution! 32x8=256 x (32-2)x8=240
@@ -31,6 +31,11 @@
   - The last 2 rows is 32 * 2 bytes = 64, so we can split up the nametable into 8x8 region and each attribute defines the color palette to use. Each region can be further divde into 2x2 sub-region, each sub-region pallette is controlled by 2 bits in single atrribute byte 
   - Render cycle diagram: https://www.nesdev.org/w/images/default/4/4f/Ppu.svg, when rendering current tile prepare for next one during different cycle
 - Loopy rendering (widely used in NES emulator), he's the guy that define a convinient way for us to setup this rendering pipeline in emulator
+- Input control, it's relatively simple, NES only has 8 buttons (which can map to single byte): https://www.nesdev.org/wiki/Input_devices
+  - It's a parallel write, serial read operation. The controller is memory mapped at cpu bus.
+  - Write to $4016 or %4017 to capture snapshot of controller (1/2) state
+  - Read polled data one bit at a time from $4016 or $4017 starting from MSB
+  - Supports two controller
 
 # Running this project
 

@@ -21,6 +21,8 @@ type Game struct {
 	bus     *bus.Bus
 	ppu     *olc2c02.Ppu
 	nesDisk *disk.NesDisk
+	// Controller
+	controllerMap map[ebiten.Key]uint8
 	// Screen info
 	screenW int
 	screenH int
@@ -52,6 +54,7 @@ func New() *Game {
 		screenH:            240 + 16,
 		bus:                nesBus,
 		ppu:                ppu,
+		controllerMap:      make(map[ebiten.Key]uint8),
 		screenImg:          ebiten.NewImage(256, 240),
 		screenPT0:          ebiten.NewImage(128, 128),
 		screenPT1:          ebiten.NewImage(128, 128),
@@ -59,6 +62,8 @@ func New() *Game {
 		diOptPatternTable0: &ebiten.DrawImageOptions{},
 		diOptPatternTable1: &ebiten.DrawImageOptions{},
 	}
+	// Setup controller map
+	g.initControllerMap()
 	// Setup draw region
 	g.diOptMain.GeoM.Translate(0, 16/2)
 	g.diOptPatternTable0.GeoM.Translate(256+20, 0)
@@ -128,12 +133,16 @@ func (g *Game) Update() error {
 
 		}
 	}
+	// Valid game is running
 	if g.nesDisk != nil {
+		// Update controller
+		g.updateControllerState()
+		// Run simulation for whole frame
 		// TODO: Select palette, fix clock
 		for !g.ppu.FrameCompleteAndTurnOff() {
 			g.bus.Clock()
 		}
-		// Palette change input
+		// Check for debug input
 		if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 			g.selectedPaletteId = (g.selectedPaletteId + 1) % 8
 		}

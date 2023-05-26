@@ -44,7 +44,6 @@ type Ppu struct {
 	patternDisplayBuf   [2][]uint8
 	width               int
 	height              int
-	// Control scrolling in nametable
 	// Registers
 	regCtrl register
 	regMask register

@@ -125,7 +125,7 @@ func (p *Ppu) Clock() {
 		}
 	}
 
-	// Render background
+	// Write pixel to screen buffer
 	if p.cycle < 256 && p.scanLine >= 0 && p.scanLine < 240 {
 		if p.regMask.GetFlag(regMaskRenderBG) {
 			bitMux := 0x8000 >> p.scrollFineX // select shift register

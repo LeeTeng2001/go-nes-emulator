@@ -6,11 +6,13 @@ import (
 )
 
 const (
-	RamPhysicalSize    = 0x0800
-	RamAccessMask      = 0x07FF
-	RamAccessSize      = 0x2000
-	PpuAccessRegionEnd = 0x4000
-	PpuAccessMask      = 0x07
+	RamPhysicalSize      = 0x0800
+	RamAccessMask        = 0x07FF
+	RamAccessSize        = 0x2000
+	PpuAccessRegionEnd   = 0x4000
+	PpuAccessMask        = 0x07
+	InputWriteBoundStart = 0x4016
+	InputWriteBoundEnd   = 0x4017
 )
 
 // TODO: Barrier to prevent unauthorised read/write by other device?
@@ -24,6 +26,9 @@ type Bus struct {
 	disk     *disk.NesDisk
 	ram      [RamPhysicalSize]uint8
 	sysClock uint64
+	// Input bits for two controller at current frame and it's stored state
+	controllerInput [2]uint8
+	controllerState [2]uint8
 }
 
 func New(Cpu CpuDevice, Ppu PpuDevice) *Bus {
@@ -50,6 +55,13 @@ func (b *Bus) Reset() {
 	b.cpu.Reset()
 	b.ppu.Reset()
 	b.sysClock = 0
+}
+
+func (b *Bus) UpdateControllerInputBits(controllerIdx uint8, val uint8) {
+	if controllerIdx > 1 {
+		mlog.L.Fatal("Only 2 controller is supported")
+	}
+	b.controllerInput[controllerIdx] = val
 }
 
 func (b *Bus) Clock() {
