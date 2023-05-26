@@ -137,6 +137,9 @@ func (g *Game) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 			g.selectedPaletteId = (g.selectedPaletteId + 1) % 8
 		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyF) {
+			mlog.L.Infof("TPS: %0.3f", ebiten.ActualTPS())
+		}
 	}
 	return nil
 }

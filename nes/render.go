@@ -9,14 +9,16 @@ import (
 
 func (g *Game) DrawMainMenu(screen *ebiten.Image) {
 	text.Draw(screen, "Drag and drop a nesfile to run", g.textFont, 80, 80, color.White)
+	text.Draw(screen, "P: Switch selected palette", g.textFont, 80, 120, color.White)
+	text.Draw(screen, "F: Print true FPS in console", g.textFont, 80, 140, color.White)
 }
 
 func (g *Game) DrawGame(screen *ebiten.Image) {
 	// Background fill
 	screen.Fill(color.RGBA{
-		R: 15,
-		G: 25,
-		B: 100,
+		R: 76,
+		G: 52,
+		B: 235,
 		A: 255,
 	})
 
