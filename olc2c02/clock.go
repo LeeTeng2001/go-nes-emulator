@@ -67,6 +67,7 @@ func (p *Ppu) Clock() {
 		if p.scanLine == -1 && p.cycle == 1 {
 			p.regStat.SetFlag(regStatVertZeroBlank, false)
 			p.regStat.SetFlag(regStatSpriteOverflow, false)
+			p.regStat.SetFlag(regStatSpriteZeroHit, false)
 			for i := 0; i < 8; i++ {
 				p.nextLineSpriteShiftPtrnLo[i] = 0
 				p.nextLineSpriteShiftPtrnHi[i] = 0
@@ -148,6 +149,7 @@ func (p *Ppu) Clock() {
 			p.nextLineSpriteCount = 0
 
 			// 2. Evaluate next line visible sprites by comparing y diff for all OAM sprites
+			p.spriteZeroHitPossible = false // once per scanline
 			for nOAMEntry := 0; nOAMEntry < 64; nOAMEntry++ {
 				yDiff := p.scanLine - int16(p.oamMem[nOAMEntry].y)
 				spriteYSize := int16(8)
@@ -157,11 +159,14 @@ func (p *Ppu) Clock() {
 
 				if yDiff >= 0 && yDiff < spriteYSize { // scanline in range
 					if p.nextLineSpriteCount < 8 { // next line has storage left
+						if nOAMEntry == 0 { // sprite 0 hit
+							p.spriteZeroHitPossible = true
+						}
 						p.nextLineScanlineSprites[p.nextLineSpriteCount] = p.oamMem[nOAMEntry]
 						p.nextLineSpriteCount++
 					} else { // sprite overflow
 						p.regStat.SetFlag(regStatSpriteOverflow, true)
-						mlog.L.Warn("Sprite overflow for single scanline")
+						//mlog.L.Warn("Sprite overflow for single scanline")
 					}
 				}
 			}
@@ -282,6 +287,7 @@ func (p *Ppu) Clock() {
 		fgPixel := uint8(0)
 		fgPalette := uint8(0)
 		fgPriority := uint8(0)
+		p.spriteZeroRendering = false
 		if p.regMask.GetFlag(regMaskRenderSprite) {
 			// Find the sprite from the highest render priority
 			for i := uint8(0); i < p.nextLineSpriteCount; i++ {
@@ -301,6 +307,9 @@ func (p *Ppu) Clock() {
 
 					// found top priority sprite with non-transparent pixel
 					if fgPixel != 0 {
+						if i == 0 { // Check for sprite 0 hit only for non-transparent sprite
+							p.spriteZeroRendering = true
+						}
 						break
 					}
 				}
@@ -325,6 +334,21 @@ func (p *Ppu) Clock() {
 			} else {
 				finalPixel = bgPixel
 				finalPalette = bgPalette
+			}
+			if p.spriteZeroHitPossible && p.spriteZeroRendering { // sprite 0 collision
+				// Some other condition
+				if p.regMask.GetFlag(regMaskRenderBG) && p.regMask.GetFlag(regMaskRenderSprite) {
+					if !(p.regMask.GetFlag(regMaskRenderBGLeft) || p.regMask.GetFlag(regMaskRenderSpriteLeft)) {
+						// Left edge condition
+						if p.cycle >= 9 && p.cycle < 258 {
+							p.regStat.SetFlag(regStatSpriteZeroHit, true)
+						}
+					} else {
+						if p.cycle >= 1 && p.cycle < 258 {
+							p.regStat.SetFlag(regStatSpriteZeroHit, true)
+						}
+					}
+				}
 			}
 		}
 

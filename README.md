@@ -49,6 +49,12 @@
   - rendering along a scanline increase cycle while decrease sprite X, so if sprite x == 0 we should start to render the sprite
   - Nes can only render maximum of 8 sprites in a given scanline, if we got more than that then a sprite overflow flag should be set
   - The lowest bit sprite has the maximum priority if overlap.
+- Collision detection (sprite 0 hit):
+  - Using a single flag to determine if a sprite overlaps with bg
+  - Only works for sprite 0 in OAM!
+  - This collision can be used as synchronisation! 
+  - We can keep the nametable background fixed at the top, and only start scrolling AFTER the collision, look at mario example
+  - Damn hack
 
 # Running this project
 

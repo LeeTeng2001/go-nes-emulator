@@ -40,6 +40,9 @@ type Ppu struct {
 	nextLineSpriteCount       uint8
 	nextLineSpriteShiftPtrnLo [8]uint8
 	nextLineSpriteShiftPtrnHi [8]uint8
+	// Detection for sprite 0 collision
+	spriteZeroHitPossible bool
+	spriteZeroRendering   bool
 	// Internal
 	lookupPalette  [PreDefPaletteSize]color.RGBA
 	scanLine       int16
