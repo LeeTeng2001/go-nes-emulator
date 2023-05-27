@@ -8,3 +8,10 @@ func FlipByte(b uint8) uint8 {
 	b = (b&0xAA)>>1 | (b&0x55)<<1
 	return b
 }
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

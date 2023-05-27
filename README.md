@@ -1,4 +1,9 @@
-# Brief overview
+# Future TODO
+- Implement the rest of functionality in APU (rn it only has single, crude pulse oscillator)
+- Implement more mappers!
+- Dynamic screen upscalling
+
+# Brief architecture overview
 - 64KB RAM
 - 6502 CPU has A,X,Y register, stack pointer, PC, status register
 - Instruction has different size and might require more than 1 clock cycle to complete
@@ -55,6 +60,8 @@
   - This collision can be used as synchronisation! 
   - We can keep the nametable background fixed at the top, and only start scrolling AFTER the collision, look at mario example
   - Damn hack
+- APU is integrated on CPU but can be thought as an independent device
+  - Can thought apu as a fire and forget device
 
 # Running this project
 

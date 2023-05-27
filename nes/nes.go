@@ -12,6 +12,7 @@ import (
 	"nes_emulator/cpu6502"
 	"nes_emulator/disk"
 	"nes_emulator/mlog"
+	"nes_emulator/olc2a03"
 	"nes_emulator/olc2c02"
 )
 
@@ -20,6 +21,7 @@ type Game struct {
 	// Nes components, put ppu here to directly access the display buffer
 	bus     *bus.Bus
 	ppu     *olc2c02.Ppu
+	apu     *olc2a03.Apu
 	nesDisk *disk.NesDisk
 	// Controller
 	controllerMap map[ebiten.Key]uint8
@@ -44,7 +46,8 @@ func New() *Game {
 	//cpu := cpu6502.NewDebug() // TODO: Remove debug
 	cpu := cpu6502.New()
 	ppu := olc2c02.New()
-	nesBus := bus.New(cpu, ppu)
+	apu := olc2a03.New()
+	nesBus := bus.New(cpu, ppu, apu)
 	cpu.ConnectBus(nesBus)
 	ppu.ConnectBus(nesBus)
 
@@ -54,6 +57,7 @@ func New() *Game {
 		screenH:            240 + 16,
 		bus:                nesBus,
 		ppu:                ppu,
+		apu:                apu,
 		controllerMap:      make(map[ebiten.Key]uint8),
 		screenImg:          ebiten.NewImage(256, 240),
 		screenPT0:          ebiten.NewImage(128, 128),
@@ -142,6 +146,8 @@ func (g *Game) Update() error {
 		for !g.ppu.FrameCompleteAndTurnOff() {
 			g.bus.Clock()
 		}
+		// Update audio buffer
+		g.apu.MoveFrameAudioBuffer()
 		// Check for debug input
 		if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 			g.selectedPaletteId = (g.selectedPaletteId + 1) % 8

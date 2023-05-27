@@ -15,6 +15,8 @@ func (b *Bus) CWrite(addr uint16, data uint8) {
 		// Ppu address range, it only has 8 registers and it's being mirrored
 		// https://www.nesdev.org/wiki/PPU_registers
 		b.ppu.CWrite(addr&PpuAccessMask, data)
+	} else if (addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015 || addr == 0x4017 { // apu
+		b.apu.CWrite(addr, data)
 	} else if addr == 0x4014 { // DMA started, transfer one full page
 		b.dmaPage = data
 		b.dmaAddr = 0

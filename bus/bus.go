@@ -23,6 +23,7 @@ const (
 type Bus struct {
 	cpu      CpuDevice
 	ppu      PpuDevice
+	apu      ApuDevice
 	disk     *disk.NesDisk
 	ram      [RamPhysicalSize]uint8
 	sysClock uint64
@@ -37,10 +38,11 @@ type Bus struct {
 	dmaData         uint8
 }
 
-func New(Cpu CpuDevice, Ppu PpuDevice) *Bus {
+func New(Cpu CpuDevice, Ppu PpuDevice, Apu ApuDevice) *Bus {
 	b := Bus{
 		cpu:      Cpu,
 		ppu:      Ppu,
+		apu:      Apu,
 		sysClock: 0,
 	}
 	mlog.L.Infof("Bus is initialised")
@@ -75,6 +77,7 @@ func (b *Bus) Clock() {
 
 	// The fastest clock frequency the digital system cares is ppu
 	b.ppu.Clock()
+	b.apu.Clock()
 
 	// The CPU runs 3 times slower than the PPU
 	if b.sysClock%3 == 0 {

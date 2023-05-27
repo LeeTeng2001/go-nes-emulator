@@ -10,6 +10,14 @@ type CpuDevice interface {
 	Nmi()
 }
 
+type ApuDevice interface {
+	CWrite(addr uint16, data uint8)
+	CRead(addr uint16) (data uint8)
+	Reset()
+	Clock()
+	GetOutputSample() float64
+}
+
 // PpuDevice has the ppu interface
 // communication with ppu bus
 type PpuDevice interface {
