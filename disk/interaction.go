@@ -18,7 +18,7 @@ func (n *NesDisk) CRead(addr uint16, data *uint8) bool {
 
 func (n *NesDisk) CWrite(addr uint16, data uint8) bool {
 	var mappedAddr uint32
-	if n.mapperHandler.CpuMapWrite(addr, &mappedAddr) {
+	if n.mapperHandler.CpuMapWrite(addr, &mappedAddr, data) {
 		n.PrgRomData[mappedAddr] = data
 		return true
 	}

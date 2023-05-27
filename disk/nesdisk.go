@@ -22,7 +22,7 @@ type NesDisk struct {
 	ChrTotalBank uint8
 	mapper1      uint8
 	mapper2      uint8
-	flag8        uint8
+	prgRamSize   uint8
 	flag9        uint8
 	flag10       uint8
 	// Data

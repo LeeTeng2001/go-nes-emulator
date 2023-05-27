@@ -38,7 +38,7 @@ func NewFromBytes(data []byte) *NesDisk {
 	nesFile.ChrTotalBank = data[5]
 	nesFile.mapper1 = data[6]
 	nesFile.mapper2 = data[7]
-	nesFile.flag8 = data[8]
+	nesFile.prgRamSize = data[8]
 	nesFile.flag9 = data[9]
 	nesFile.flag10 = data[10]
 
@@ -58,15 +58,24 @@ func NewFromBytes(data []byte) *NesDisk {
 	prgActualSize := PrgRomSizeUnit * int(nesFile.PrgTotalBank)
 	chrActualSize := ChrRomSizeUnit * int(nesFile.ChrTotalBank)
 	nesFile.PrgRomData = data[HeaderSize+trainerSize : HeaderSize+trainerSize+prgActualSize]
-	nesFile.ChrRomData = data[HeaderSize+trainerSize+prgActualSize : HeaderSize+trainerSize+prgActualSize+chrActualSize]
+
+	// Check if CHR is using RAM
+	if chrActualSize == 0 {
+		nesFile.ChrRomData = make([]uint8, 8192)
+	}
 
 	// Load correspond mapper handler
 	switch nesFile.nMapperId {
 	case 0:
 		nesFile.mapperHandler = mapper.NewM0(nesFile.PrgTotalBank, nesFile.ChrTotalBank)
+	case 2:
+		nesFile.mapperHandler = mapper.NewM2(nesFile.PrgTotalBank, nesFile.ChrTotalBank)
 	default:
 		mlog.L.Fatalf("Encounter mapper id %d without corresponding mapper!\n", nesFile.nMapperId)
 	}
+
+	// Reset mapper
+	nesFile.mapperHandler.Reset()
 
 	return &nesFile
 }

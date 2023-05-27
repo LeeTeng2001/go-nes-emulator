@@ -23,7 +23,7 @@ func (m *M0) CpuMapRead(addr uint16, mappedAddr *uint32) bool {
 	return false
 }
 
-func (m *M0) CpuMapWrite(addr uint16, mappedAddr *uint32) bool {
+func (m *M0) CpuMapWrite(addr uint16, mappedAddr *uint32, data uint8) bool {
 	if addr >= 0x8000 {
 		// Same as read
 		if m.prgBanks > 1 {
@@ -60,4 +60,7 @@ func NewM0(prgBanks uint8, chrBanks uint8) *M0 {
 	m.prgBanks = prgBanks
 	m.chrBanks = chrBanks
 	return m
+}
+
+func (m *M0) Reset() {
 }

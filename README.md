@@ -62,6 +62,8 @@
   - Damn hack
 - APU is integrated on CPU but can be thought as an independent device
   - Can thought apu as a fire and forget device
+- Mappers: https://www.nesdev.org/wiki/Mapper
+  - can thoughts PRG-ROM as a series of banks
 
 # Running this project
 

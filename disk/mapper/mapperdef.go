@@ -3,9 +3,10 @@ package mapper
 // IMapper Takes request address and map it to the rom like we've read it from the file
 type IMapper interface {
 	CpuMapRead(addr uint16, mappedAddr *uint32) bool
-	CpuMapWrite(addr uint16, mappedAddr *uint32) bool
+	CpuMapWrite(addr uint16, mappedAddr *uint32, data uint8) bool
 	PpuMapRead(addr uint16, mappedAddr *uint32) bool
 	PpuMapWrite(addr uint16, mappedAddr *uint32) bool
+	Reset()
 }
 
 type mapper struct {
