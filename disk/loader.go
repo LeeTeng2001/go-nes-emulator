@@ -62,6 +62,8 @@ func NewFromBytes(data []byte) *NesDisk {
 	// Check if CHR is using RAM
 	if chrActualSize == 0 {
 		nesFile.ChrRomData = make([]uint8, 8192)
+	} else { // ROM
+		nesFile.ChrRomData = data[HeaderSize+trainerSize+prgActualSize : HeaderSize+trainerSize+prgActualSize+chrActualSize]
 	}
 
 	// Load correspond mapper handler

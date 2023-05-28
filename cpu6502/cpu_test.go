@@ -59,7 +59,7 @@ func compareLog() bool {
 
 func TestNesTest(t *testing.T) {
 	cpu := NewDebug()
-	newBus := bus.New(cpu, nil)
+	newBus := bus.New(cpu, nil, nil)
 	cpu.ConnectBus(newBus)
 
 	// Load nes, write twice to ram if you don't have a working memory yet

@@ -73,102 +73,18 @@ func (a *Apu) CWrite(addr uint16, data uint8) {
 			a.pulse1Seq.sequence = 0b11111100
 			a.pulse1Duty = 0.750
 		}
-	case 0x4001:
-	//	pulse1_sweep.enabled = data & 0x80;
-	//	pulse1_sweep.period = (data & 0x70) >> 4;
-	//	pulse1_sweep.down = data & 0x08;
-	//	pulse1_sweep.shift = data & 0x07;
-	//	pulse1_sweep.reload = true;
+	case 0x4001: // sweep
 	case 0x4002: // low bit of reload
 		a.pulse1Seq.reload = (a.pulse1Seq.reload & 0xFF00) | uint16(data)
 	case 0x4003: // high bit of reload and set
 		a.pulse1Seq.reload = (a.pulse1Seq.reload & 0x00FF) | (uint16(data&0x7) << 8)
 		a.pulse1Seq.timer = a.pulse1Seq.reload
-	//	pulse1_seq.sequence = pulse1_seq.new_sequence;
-	//	pulse1_lc.counter = length_table[(data & 0xF8) >> 3];
-	//	pulse1_env.start = true;
-	//	break;
-	//
-	//case 0x4004:
-	//	switch ((data & 0xC0) >> 6)
-	//	{
-	//	case 0x00: pulse2_seq.new_sequence = 0b01000000; pulse2_osc.dutycycle = 0.125; break;
-	//	case 0x01: pulse2_seq.new_sequence = 0b01100000; pulse2_osc.dutycycle = 0.250; break;
-	//	case 0x02: pulse2_seq.new_sequence = 0b01111000; pulse2_osc.dutycycle = 0.500; break;
-	//	case 0x03: pulse2_seq.new_sequence = 0b10011111; pulse2_osc.dutycycle = 0.750; break;
-	//	}
-	//	pulse2_seq.sequence = pulse2_seq.new_sequence;
-	//	pulse2_halt = (data & 0x20);
-	//	pulse2_env.volume = (data & 0x0F);
-	//	pulse2_env.disable = (data & 0x10);
-	//	break;
-	//
-	//case 0x4005:
-	//	pulse2_sweep.enabled = data & 0x80;
-	//	pulse2_sweep.period = (data & 0x70) >> 4;
-	//	pulse2_sweep.down = data & 0x08;
-	//	pulse2_sweep.shift = data & 0x07;
-	//	pulse2_sweep.reload = true;
-	//	break;
-	//
-	//case 0x4006:
-	//	pulse2_seq.reload = (pulse2_seq.reload & 0xFF00) | data;
-	//	break;
-	//
-	//case 0x4007:
-	//	pulse2_seq.reload = (uint16_t)((data & 0x07)) << 8 | (pulse2_seq.reload & 0x00FF);
-	//	pulse2_seq.timer = pulse2_seq.reload;
-	//	pulse2_seq.sequence = pulse2_seq.new_sequence;
-	//	pulse2_lc.counter = length_table[(data & 0xF8) >> 3];
-	//	pulse2_env.start = true;
-	//
-	//	break;
-	//
-	//case 0x4008:
-	//	break;
-	//
-	//case 0x400C:
-	//	noise_env.volume = (data & 0x0F);
-	//	noise_env.disable = (data & 0x10);
-	//	noise_halt = (data & 0x20);
-	//	break;
-	//
-	//case 0x400E:
-	//	switch (data & 0x0F)
-	//	{
-	//	case 0x00: noise_seq.reload = 0; break;
-	//	case 0x01: noise_seq.reload = 4; break;
-	//	case 0x02: noise_seq.reload = 8; break;
-	//	case 0x03: noise_seq.reload = 16; break;
-	//	case 0x04: noise_seq.reload = 32; break;
-	//	case 0x05: noise_seq.reload = 64; break;
-	//	case 0x06: noise_seq.reload = 96; break;
-	//	case 0x07: noise_seq.reload = 128; break;
-	//	case 0x08: noise_seq.reload = 160; break;
-	//	case 0x09: noise_seq.reload = 202; break;
-	//	case 0x0A: noise_seq.reload = 254; break;
-	//	case 0x0B: noise_seq.reload = 380; break;
-	//	case 0x0C: noise_seq.reload = 508; break;
-	//	case 0x0D: noise_seq.reload = 1016; break;
-	//	case 0x0E: noise_seq.reload = 2034; break;
-	//	case 0x0F: noise_seq.reload = 4068; break;
-	//	}
-	//	break;
-	//
 	case 0x4015: // APU STATUS
 		if data&0x01 != 0 {
 			a.pulse1Enable = true
 		} else {
 			a.pulse1Enable = false
 		}
-		//pulse2_enable = data & 0x02
-		//noise_enable = data & 0x04
-		//case 0x400F:
-		//	pulse1_env.start = true;
-		//	pulse2_env.start = true;
-		//	noise_env.start = true;
-		//	noise_lc.counter = length_table[(data & 0xF8) >> 3];
-		//	break;
 	}
 }
 
