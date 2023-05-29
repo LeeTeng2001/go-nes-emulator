@@ -1,3 +1,9 @@
+# NES Emulator
+
+As I prepare for my internship, I would love to undertake some challenging projects to refine my skills, and this NES emulator is one of them. I have gone into more detail about it in my [blog article](https://leeteng.com/blog/content/writing-nes-emulator).
+
+
+https://github.com/LeeTeng2001/go-nes-emulator/raw/main/demo/video.mp4
 
 # Running this project
 
