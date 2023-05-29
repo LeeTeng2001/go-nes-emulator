@@ -1,3 +1,16 @@
+
+# Running this project
+
+```bash
+# Install dependencies
+$ go mod tidy
+
+# Run
+$ go run main.go
+```
+
+Drag and drop any compatible (that has corresponding mapper) nes rom file into the GUI to start.
+
 # Future TODO
 - Implement the rest of functionality in APU (rn it only has single, crude pulse oscillator)
 - Implement more mappers!
@@ -64,8 +77,6 @@
   - Can thought apu as a fire and forget device
 - Mappers: https://www.nesdev.org/wiki/Mapper
   - can thoughts PRG-ROM as a series of banks
-
-# Running this project
 
 
 # My notes
