@@ -3,7 +3,8 @@
 As I prepare for my internship, I would love to undertake some challenging projects to refine my skills, and this NES emulator is one of them. I have gone into more detail about it in my [blog article](https://leeteng.com/blog/content/writing-nes-emulator).
 
 
-https://github.com/LeeTeng2001/go-nes-emulator/raw/main/demo/video.mp4
+https://github.com/LeeTeng2001/go-nes-emulator/assets/63984709/f30d7084-f43f-4dbb-9de6-6041fe391a29
+
 
 # Running this project
 
